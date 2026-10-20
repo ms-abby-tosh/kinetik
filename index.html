@@ -138,7 +138,14 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
 .wk{display:grid;grid-template-columns:3em minmax(0,1fr);align-items:center;gap:8px;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
 .wk.is-today{color:var(--amber)}
 .wk select{width:100%}
-.rack-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.builder{background:var(--bg);border:1px solid var(--amber);border-radius:12px;padding:16px;display:grid;gap:12px;min-width:0}
+.rack-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.setup-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.setup-ed{display:grid;gap:12px;border-top:1px solid var(--line);padding-top:10px}
+.setup-ed input[type=text]{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;width:12em;max-width:100%}
+.eq-group{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 16px;min-width:0}
+.eq-group legend{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0;margin-bottom:4px}
+.eq-group .toggle{color:var(--fg);min-height:36px;cursor:pointer}
+.builder{background:var(--bg);border:1px solid var(--amber);border-radius:12px;padding:16px;display:grid;gap:12px;min-width:0}
 .bw-head,.bw-meta,.bw-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .bw-actions{justify-content:flex-start}
 .bw-total{font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
@@ -287,7 +294,8 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
         <p class="eyebrow" id="tdDay">Today</p>
         <h2 class="today-focus" id="tdFocus">Upper body</h2>
         <p class="today-det" id="tdDet">Chest, shoulders, triceps and biceps</p>
-        <label class="field">Equipment <select id="equip"><option value="gym">Full gym</option><option value="home">Kettlebell + bench (home)</option><option value="db">Dumbbells + bodyweight</option><option value="bw">Bodyweight only</option></select></label>
+        <div class="setup-row"><label class="field">Setup <select id="equip"></select></label><button class="linkish" id="setupEdit" aria-expanded="false">Edit equipment</button></div>
+        <div id="setupEd" class="setup-ed" hidden></div>
         <div class="today-acts"><button class="play small" id="tdGo">Load today's workout</button><button class="btn" id="tdShuffle">Shuffle</button><button class="btn" id="tdCustom">Customize</button></div>
         <ol class="td-list" id="tdList"></ol>
         <button class="linkish" id="tdWeek" aria-expanded="false">Edit my week</button>
@@ -872,15 +880,26 @@ function markPlan(el){const i=el<0?-1:PL.findIndex(r=>el<r.t1);if(i===plIdx)retu
 /* ---------- today's program ---------- */
 const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const LIB={
-  chest:[['Bench press',1,'g'],['Dumbbell bench press',1,'d'],['Incline dumbbell press',1,'d'],['Push-ups',1,'b'],['Decline push-ups',0,'b'],['Dips',0,'g'],['Cable flyes',0,'g'],['Dumbbell flyes',0,'d'],['Single-arm kettlebell bench press',1,'k'],['Single-arm kettlebell incline press',1,'k'],['Kettlebell pullovers',0,'k'],['Feet-on-bench push-ups',0,'n']],
-  shoulders:[['Overhead press',1,'g'],['Dumbbell shoulder press',1,'d'],['Arnold press',1,'d'],['Pike push-ups',1,'b'],['Lateral raises',0,'d'],['Front raises',0,'d'],['Rear-delt flyes',0,'d'],['Upright rows',0,'g'],['Plank shoulder taps',0,'b'],['Single-arm kettlebell overhead press',1,'k'],['Kettlebell push press',1,'k'],['Kettlebell halos',0,'k'],['Kettlebell upright rows',0,'k']],
-  triceps:[['Close-grip bench press',1,'g'],['Skull crushers',0,'g'],['Rope pushdowns',0,'g'],['Overhead dumbbell extension',0,'d'],['Dumbbell kickbacks',0,'d'],['Bench dips',0,'b'],['Diamond push-ups',0,'b'],['Kettlebell skull crushers',0,'k'],['Kettlebell overhead extension',0,'k'],['Kettlebell close-grip press',0,'k']],
-  biceps:[['Barbell curls',0,'g'],['Cable curls',0,'g'],['Preacher curls',0,'g'],['Hammer curls',0,'d'],['Incline dumbbell curls',0,'d'],['Dumbbell curls',0,'d'],['Chin-ups',0,'p'],['Doorframe rows',0,'b'],['Kettlebell curls',0,'k'],['Kettlebell hammer curls',0,'k'],['Kettlebell concentration curls',0,'k']],
-  back:[['Deadlifts',1,'g'],['Pull-ups',1,'p'],['Bent-over rows',1,'g'],['Single-arm dumbbell rows',1,'d'],['Inverted rows',1,'b'],['Lat pulldowns',0,'g'],['Seated cable rows',0,'g'],['Face pulls',0,'g'],['Renegade rows',0,'d'],['Superman holds',0,'b'],['Bench-supported kettlebell rows',1,'k'],['Kettlebell dead-stop rows',1,'k'],['Kettlebell high pulls',0,'k'],['Chest-supported kettlebell rows',0,'k']],
-  legs:[['Back squats',1,'g'],['Front squats',1,'g'],['Leg press',1,'g'],['Goblet squats',1,'d'],['Bulgarian split squats',1,'d'],['Bodyweight squats',1,'b'],['Jump squats',0,'b'],['Walking lunges',0,'b'],['Step-ups',0,'d'],['Leg extensions',0,'g'],['Calf raises',0,'b'],['Kettlebell goblet squats',1,'k'],['Kettlebell sumo squats',1,'k'],['Bulgarian split squats on bench',1,'k'],['Kettlebell step-ups',0,'k'],['Kettlebell front-rack lunges',0,'k']],
-  posterior:[['Romanian deadlifts',1,'g'],['Hip thrusts',1,'g'],['Dumbbell Romanian deadlifts',1,'d'],['Kettlebell swings',1,'k'],['Glute bridges',1,'b'],['Single-leg glute bridges',0,'b'],['Single-leg deadlifts',0,'b'],['Good mornings',0,'g'],['Back extensions',0,'g'],['Hamstring curls',0,'g'],['Kettlebell Romanian deadlifts',1,'k'],['Kettlebell sumo deadlifts',1,'k'],['Kettlebell hip thrusts on bench',1,'k'],['Single-leg kettlebell deadlifts',0,'k']],
-  core:[['Hanging leg raises',0,'g'],['Cable crunches',0,'g'],['Ab wheel rollouts',0,'g'],['Plank',0,'b'],['Russian twists',0,'b'],['Dead bugs',0,'b'],['Bicycle crunches',0,'b'],['Mountain climbers',0,'b'],['Kettlebell Russian twists',0,'k'],['Kettlebell windmills',0,'k'],['Turkish get-ups',0,'k'],['Bench leg raises',0,'n']]};
-const EQUIP={gym:{name:'Full gym',ok:'gdbknp',pref:'g'},home:{name:'Kettlebell + bench',ok:'kbn',pref:'k'},db:{name:'Dumbbells + bodyweight',ok:'dbn',pref:'d'},bw:{name:'Bodyweight only',ok:'bp',pref:'b'}};
+  /* [name, compound?, equipment needed joined by '+', '' = bodyweight] */
+  chest:[['Bench press',1,'barbell+bench'],['Dumbbell bench press',1,'dumbbells+bench'],['Incline dumbbell press',1,'dumbbells+bench'],['Push-ups',1,''],['Decline push-ups',0,''],['Dips',0,'pullup'],['Cable flyes',0,'cables'],['Dumbbell flyes',0,'dumbbells+bench'],['Single-arm kettlebell bench press',1,'kettlebell+bench'],['Single-arm kettlebell incline press',1,'kettlebell+bench'],['Kettlebell pullovers',0,'kettlebell+bench'],['Feet-on-bench push-ups',0,'bench']],
+  shoulders:[['Overhead press',1,'barbell'],['Dumbbell shoulder press',1,'dumbbells'],['Arnold press',1,'dumbbells'],['Pike push-ups',1,''],['Lateral raises',0,'dumbbells'],['Front raises',0,'dumbbells'],['Rear-delt flyes',0,'dumbbells'],['Upright rows',0,'barbell'],['Plank shoulder taps',0,''],['Single-arm kettlebell overhead press',1,'kettlebell'],['Kettlebell push press',1,'kettlebell'],['Kettlebell halos',0,'kettlebell'],['Kettlebell upright rows',0,'kettlebell']],
+  triceps:[['Close-grip bench press',1,'barbell+bench'],['Skull crushers',0,'barbell+bench'],['Rope pushdowns',0,'cables'],['Overhead dumbbell extension',0,'dumbbells'],['Dumbbell kickbacks',0,'dumbbells'],['Bench dips',0,''],['Diamond push-ups',0,''],['Kettlebell skull crushers',0,'kettlebell'],['Kettlebell overhead extension',0,'kettlebell'],['Kettlebell close-grip press',0,'kettlebell']],
+  biceps:[['Barbell curls',0,'barbell'],['Cable curls',0,'cables'],['Preacher curls',0,'cables'],['Hammer curls',0,'dumbbells'],['Incline dumbbell curls',0,'dumbbells+bench'],['Dumbbell curls',0,'dumbbells'],['Chin-ups',0,'pullup'],['Doorframe rows',0,''],['Kettlebell curls',0,'kettlebell'],['Kettlebell hammer curls',0,'kettlebell'],['Kettlebell concentration curls',0,'kettlebell']],
+  back:[['Deadlifts',1,'barbell'],['Pull-ups',1,'pullup'],['Bent-over rows',1,'barbell'],['Single-arm dumbbell rows',1,'dumbbells'],['Inverted rows',1,''],['Lat pulldowns',0,'cables'],['Seated cable rows',0,'cables'],['Face pulls',0,'cables'],['Renegade rows',0,'dumbbells'],['Superman holds',0,''],['Bench-supported kettlebell rows',1,'kettlebell+bench'],['Kettlebell dead-stop rows',1,'kettlebell'],['Kettlebell high pulls',0,'kettlebell'],['Chest-supported kettlebell rows',0,'kettlebell+bench']],
+  legs:[['Back squats',1,'barbell'],['Front squats',1,'barbell'],['Leg press',1,'cables'],['Goblet squats',1,'dumbbells'],['Bulgarian split squats',1,'dumbbells+bench'],['Bodyweight squats',1,''],['Jump squats',0,''],['Walking lunges',0,''],['Step-ups',0,'dumbbells+bench'],['Leg extensions',0,'cables'],['Calf raises',0,''],['Kettlebell goblet squats',1,'kettlebell'],['Kettlebell sumo squats',1,'kettlebell'],['Bulgarian split squats on bench',1,'kettlebell+bench'],['Kettlebell step-ups',0,'kettlebell+bench'],['Kettlebell front-rack lunges',0,'kettlebell']],
+  posterior:[['Romanian deadlifts',1,'barbell'],['Hip thrusts',1,'barbell+bench'],['Dumbbell Romanian deadlifts',1,'dumbbells'],['Kettlebell swings',1,'kettlebell'],['Glute bridges',1,''],['Single-leg glute bridges',0,''],['Single-leg deadlifts',0,''],['Good mornings',0,'barbell'],['Back extensions',0,'cables'],['Hamstring curls',0,'cables'],['Kettlebell Romanian deadlifts',1,'kettlebell'],['Kettlebell sumo deadlifts',1,'kettlebell'],['Kettlebell hip thrusts on bench',1,'kettlebell+bench'],['Single-leg kettlebell deadlifts',0,'kettlebell']],
+  core:[['Hanging leg raises',0,'pullup'],['Cable crunches',0,'cables'],['Ab wheel rollouts',0,'cables'],['Plank',0,''],['Russian twists',0,''],['Dead bugs',0,''],['Bicycle crunches',0,''],['Mountain climbers',0,''],['Kettlebell Russian twists',0,'kettlebell'],['Kettlebell windmills',0,'kettlebell'],['Turkish get-ups',0,'kettlebell'],['Bench leg raises',0,'bench']]};
+/* equipment: setups are named checklists of these items; bodyweight is always available */
+const EQ_GROUPS=[['Free weights',[['barbell','Barbell & rack'],['dumbbells','Dumbbells'],['kettlebell','Kettlebell'],['medball','Medicine ball']]],
+  ['Bench & bars',[['bench','Bench'],['pullup','Pull-up / dip bar']]],
+  ['Accessories',[['bands','Resistance bands'],['trx','TRX'],['bosu','BOSU'],['cones','Cones'],['rope','Skipping rope'],['roller','Foam roller']]],
+  ['Machines',[['cables','Cables & machines'],['treadmill','Treadmill'],['bike','Bike'],['rower','Rower'],['elliptical','Elliptical'],['stairs','Stair climber']]]];
+const EQ_ALL=EQ_GROUPS.flatMap(g=>g[1].map(i=>i[0]));
+const DEF_SETUPS=[{id:'gym',name:'Full gym',items:EQ_ALL},{id:'home',name:'Home',items:['dumbbells','kettlebell','medball','bench','bands','trx','bosu','cones','rope','roller']},{id:'bw',name:'Bodyweight only',items:[]}];
+const curSetup=()=>SET.setups.find(s=>s.id===SET.setup)||SET.setups[0];
+const canDo=(req,items)=>req.split('+').every(i=>!i||items.includes(i));
+/* how loaded an exercise is: the first big lift of a group uses the heaviest kit available */
+const loadRank=req=>req.includes('barbell')?3:/dumbbells|kettlebell|cables/.test(req)?2:req?1:0;
 const FOCUS={
   upper:{name:'Upper body',det:'Chest, shoulders, triceps and biceps',genre:'hiphop',mix:[['chest',2],['shoulders',2],['triceps',1],['biceps',1]]},
   push:{name:'Chest & triceps',det:'Pressing day: chest, triceps, front delts',genre:'hiphop',mix:[['chest',3],['triceps',2],['shoulders',1]]},
@@ -902,8 +921,8 @@ const DEF_WEEK={0:'stretch',1:'upper',2:'legs',3:'hiit',4:'back',5:'full',6:'wal
 let week={...DEF_WEEK},shuf={date:'',n:0},todayW=null;
 function rng(a){a>>>=0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function hashStr(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
-function genWorkout(fk,seed){const F=FOCUS[fk],r=rng(hashStr(seed)),used=new Set(),ex=[];
-  F.mix.forEach(([g,n])=>{const pool=LIB[g].filter(e=>!used.has(e[0])&&EQUIP[SET.equip].ok.includes(e[2]));for(let i=0;i<n&&pool.length;i++){const big0=pool.filter(e=>e[1]),bigG=big0.filter(e=>e[2]===EQUIP[SET.equip].pref),bigP=bigG.length?bigG:big0.filter(e=>e[2]!=='b'),big=bigP.length?bigP:big0;const src=i===0&&big.length&&['chest','back','legs','posterior','shoulders'].includes(g)?big:pool;const e=src[Math.floor(r()*src.length)];pool.splice(pool.indexOf(e),1);used.add(e[0]);ex.push(e)}});
+function genWorkout(fk,seed){const F=FOCUS[fk],r=rng(hashStr(seed)),used=new Set(),ex=[],items=curSetup().items;
+  F.mix.forEach(([g,n])=>{const pool=LIB[g].filter(e=>!used.has(e[0])&&canDo(e[2],items));for(let i=0;i<n&&pool.length;i++){const big0=pool.filter(e=>e[1]),top=Math.max(0,...big0.map(e=>loadRank(e[2]))),big=big0.filter(e=>loadRank(e[2])===top);const src=i===0&&big.length&&['chest','back','legs','posterior','shoulders'].includes(g)?big:pool;const e=src[Math.floor(r()*src.length)];pool.splice(pool.indexOf(e),1);used.add(e[0]);ex.push(e)}});
   ex.sort((a,b)=>b[1]-a[1]);
   const base=GBPM[F.genre],blocks=[{t:'warm',name:'Warm-up',d:300,e:.45,bpm:base-6}];
   ex.forEach(([n,c],i)=>{if(i)blocks.push({t:'rest',name:'Set up next',d:60,e:.35,bpm:base});
@@ -914,8 +933,8 @@ function todayInfo(){const d=new Date(),dow=d.getDay(),fk=FOCUS[week[dow]]?week[
 function loadWeek(){try{const w=JSON.parse(localStorage.getItem('pacemix-week')||'null');if(w)week={...DEF_WEEK,...w};const sh=JSON.parse(localStorage.getItem('pacemix-shuffle')||'null');if(sh)shuf=sh}catch(e){}}
 function saveWeek(){try{localStorage.setItem('pacemix-week',JSON.stringify(week));localStorage.setItem('pacemix-shuffle',JSON.stringify(shuf))}catch(e){}}
 function renderToday(){const {dow,fk,F,key}=todayInfo();$('tdDay').textContent='Today · '+DAYS[dow];$('tdFocus').textContent=F.name;
-  if(F.mix){const n=shuf.date===key?shuf.n:0;todayW=genWorkout(fk,key+'|'+fk+'|'+SET.equip+'|'+n);const c=todayW.blocks.filter(b=>b.t==='int').length;
-    $('tdDet').textContent=F.det+' · '+EQUIP[SET.equip].name+' · '+c+' exercises · '+Math.round(wTotal(todayW)/60)+' min';
+  if(F.mix){const n=shuf.date===key?shuf.n:0;todayW=genWorkout(fk,key+'|'+fk+'|'+[...curSetup().items].sort().join(',')+'|'+n);const c=todayW.blocks.filter(b=>b.t==='int').length;
+    $('tdDet').textContent=F.det+' · '+curSetup().name+' · '+c+' exercises · '+Math.round(wTotal(todayW)/60)+' min';
     const tl=$('tdList');tl.innerHTML='';todayW.blocks.filter(b=>b.t==='int').forEach(b=>{const li=document.createElement('li');li.innerHTML='<span></span><em></em>';li.querySelector('span').textContent=b.name;li.querySelector('em').textContent=b.rounds+' × '+fmt(b.w);tl.appendChild(li)});tl.hidden=false;$('tdGo').hidden=false;$('tdGo').textContent="Load today's workout";$('tdShuffle').hidden=false;$('tdCustom').hidden=false}
   else{todayW=null;$('tdList').hidden=true;$('tdDet').textContent=F.det;const st=STATIONS.find(x=>x.id===F.station);$('tdGo').hidden=!st;if(st)$('tdGo').textContent='Load '+st.name;$('tdShuffle').hidden=true;$('tdCustom').hidden=true}}
 function loadToday(){const {F}=todayInfo();if(todayW)selectStation(customStation(todayW));else{const st=STATIONS.find(x=>x.id===F.station);if(st)selectStation(st)}}
@@ -932,8 +951,27 @@ function initToday(){loadWeek();renderToday();
   const {F}=todayInfo();if(todayW||F.station)loadToday()}
 
 /* ---------- training: settings, done, beeps, log, history, gym mode ---------- */
-const SET={equip:'gym',manual:true,beeps:true,unit:'lb'};
-function loadSet(){try{Object.assign(SET,JSON.parse(localStorage.getItem('pacemix-settings')||'{}'))}catch(e){}if(!EQUIP[SET.equip])SET.equip='gym'}
+const SET={setup:'gym',manual:true,beeps:true,unit:'lb'};
+function loadSet(){try{Object.assign(SET,JSON.parse(localStorage.getItem('pacemix-settings')||'{}'))}catch(e){}
+  SET.setups=(Array.isArray(SET.setups)?SET.setups:[]).filter(s=>s&&s.id&&Array.isArray(s.items)).map(s=>({id:String(s.id),name:String(s.name||'My setup'),items:s.items.filter(i=>EQ_ALL.includes(i))}));
+  if(!SET.setups.length)SET.setups=JSON.parse(JSON.stringify(DEF_SETUPS));
+  if(SET.equip){SET.setup={gym:'gym',bw:'bw'}[SET.equip]||'home';delete SET.equip}  /* old single Equipment menu */
+  if(!SET.setups.some(s=>s.id===SET.setup))SET.setup=SET.setups[0].id}
+function renderSetupSel(){const sel=$('equip');sel.innerHTML='';SET.setups.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;sel.appendChild(o)});sel.value=SET.setup}
+function setupChanged(){saveSet();renderToday();if(cur.id==='today')loadToday()}
+function renderSetupEd(){const box=$('setupEd'),s=curSetup();box.innerHTML='';
+  const nm=document.createElement('label');nm.className='field';nm.append('Name ');const inp=document.createElement('input');inp.type='text';inp.maxLength=30;inp.value=s.name;
+  inp.onchange=()=>{s.name=inp.value.trim()||'My setup';inp.value=s.name;saveSet();renderSetupSel();renderToday()};nm.appendChild(inp);box.appendChild(nm);
+  EQ_GROUPS.forEach(([g,list])=>{const fs=document.createElement('fieldset');fs.className='eq-group';const lg=document.createElement('legend');lg.textContent=g;fs.appendChild(lg);
+    list.forEach(([id,label])=>{const l=document.createElement('label');l.className='field toggle';const c=document.createElement('input');c.type='checkbox';c.checked=s.items.includes(id);
+      c.onchange=()=>{s.items=c.checked?[...new Set([...s.items,id])]:s.items.filter(x=>x!==id);setupChanged()};l.append(c,label);fs.appendChild(l)});box.appendChild(fs)});
+  const p=document.createElement('p');p.className='bk-note';p.textContent='Bodyweight exercises are always included.';box.appendChild(p);
+  const acts=document.createElement('div');acts.className='today-acts';
+  const add=document.createElement('button');add.className='btn';add.textContent='+ New setup';
+  add.onclick=()=>{const n={id:'s-'+Date.now().toString(36),name:'New setup',items:[]};SET.setups.push(n);SET.setup=n.id;renderSetupSel();setupChanged();renderSetupEd();const t=box.querySelector('input[type=text]');t.focus();t.select()};acts.appendChild(add);
+  if(SET.setups.length>1){const del=document.createElement('button');del.className='btn';del.textContent='Delete this setup';
+    del.onclick=()=>{if(!confirm('Delete the "'+s.name+'" setup?'))return;SET.setups=SET.setups.filter(x=>x!==s);SET.setup=SET.setups[0].id;renderSetupSel();setupChanged();renderSetupEd()};acts.appendChild(del)}
+  box.appendChild(acts)}
 function saveSet(){try{localStorage.setItem('pacemix-settings',JSON.stringify(SET))}catch(e){}}
 function beep(f,d,v){if(!ctx||!SET.beeps||ctx.state!=='running')return;const t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v||.4,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+d+.03)}
 function curPos(){return S.state==='playing'||S.state==='paused'?ctx.currentTime-S.t0:-1}
@@ -1010,8 +1048,9 @@ function trainTick(){const now=performance.now();if(SESS&&S.state==='playing'){S
   if(now-lastPersist>5000){lastPersist=now;persistSession()}}
 
 function initTraining(){loadSet();loadHist();
-  $('equip').value=SET.equip;$('setMode').value=SET.manual?'manual':'timed';$('beeps').checked=SET.beeps;$('unit').value=SET.unit;
-  $('equip').onchange=e=>{SET.equip=e.target.value;saveSet();renderToday();if(cur.id==='today')loadToday()};
+  renderSetupSel();$('setMode').value=SET.manual?'manual':'timed';$('beeps').checked=SET.beeps;$('unit').value=SET.unit;
+  $('equip').onchange=e=>{SET.setup=e.target.value;setupChanged();if(!$('setupEd').hidden)renderSetupEd()};
+  $('setupEdit').onclick=()=>{const ed=$('setupEd'),open=ed.hidden;if(open)renderSetupEd();ed.hidden=!open;$('setupEdit').setAttribute('aria-expanded',String(open));$('setupEdit').textContent=open?'Done':'Edit equipment'};
   $('setMode').onchange=e=>{SET.manual=e.target.value==='manual';saveSet()};
   $('beeps').onchange=e=>{SET.beeps=e.target.checked;saveSet();if(SET.beeps)beep(880,.12)};
   $('unit').onchange=e=>{commitLog(true);SET.unit=e.target.value;saveSet();fillLog()};
