@@ -132,9 +132,7 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
 .wk{display:grid;grid-template-columns:3em minmax(0,1fr);align-items:center;gap:8px;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
 .wk.is-today{color:var(--amber)}
 .wk select{width:100%}
-.rack-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.pl-acts{display:flex;align-items:baseline;gap:12px}
-.builder{background:var(--bg);border:1px solid var(--amber);border-radius:12px;padding:16px;display:grid;gap:12px;min-width:0}
+.rack-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.builder{background:var(--bg);border:1px solid var(--amber);border-radius:12px;padding:16px;display:grid;gap:12px;min-width:0}
 .bw-head,.bw-meta,.bw-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .bw-actions{justify-content:flex-start}
 .bw-total{font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
@@ -292,7 +290,6 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
       </div>
       <div class="pane" data-pane="workouts">
       <h2 class="eyebrow">Workouts</h2>
-      <div class="rack-actions"><button class="btn" id="newW">+ Build a workout</button><button class="btn" id="editW" hidden>Edit this workout</button></div>
       <div id="stations" class="stations"></div>
       </div>
       <div class="pane" data-pane="me">
@@ -368,8 +365,9 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
         <button class="btn" id="gymBtn">Gym mode</button>
       </div>
       <section class="plan-list" aria-label="Workout">
-        <div class="tl-head"><p class="eyebrow">Workout</p><span class="pl-acts"><span class="eyebrow" id="plCount"></span><button class="linkish" id="plEdit" hidden>Edit</button></span></div>
+        <div class="tl-head"><p class="eyebrow">Workout</p><span class="eyebrow" id="plCount"></span></div>
         <ol id="planList"></ol>
+        <div class="rack-actions"><button class="btn" id="newW">+ Build a workout</button><button class="btn" id="editW" hidden>Edit this workout</button></div>
       </section>
       <canvas id="viz" aria-hidden="true"></canvas>
       <details class="settings" id="settings">
@@ -834,8 +832,7 @@ function deleteWorkout(){if(!delArm){delArm=true;$('bwDelete').textContent='Tap 
   customs=customs.filter(c=>c.id!==draft.id);saveCustoms();$('builder').hidden=true;const wasCur=cur.id===draft.id;draft=null;if(wasCur)selectStation(STATIONS[1]);else renderStations()}
 function initBuilder(){
   Object.keys(GNAME).forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=GNAME[g]+' · ~'+GBPM[g]+' BPM';$('bwGenre').appendChild(o)});
-  $('newW').onclick=newWorkout;$('editW').onclick=()=>{if(!cur.custom)return;if(cur.w.sample||cur.w.today){const c=JSON.parse(JSON.stringify(cur.w));c.id='c-'+Date.now().toString(36);c.isNew=true;delete c.sample;delete c.today;openBuilder(c)}else openBuilder(cur.w)};$('plEdit').onclick=()=>$('editW').click();
-  $('bwName').oninput=e=>{draft.name=e.target.value};
+  $('newW').onclick=newWorkout;$('editW').onclick=()=>{if(!cur.custom)return;if(cur.w.sample||cur.w.today){const c=JSON.parse(JSON.stringify(cur.w));c.id='c-'+Date.now().toString(36);c.isNew=true;delete c.sample;delete c.today;openBuilder(c)}else openBuilder(cur.w)};  $('bwName').oninput=e=>{draft.name=e.target.value};
   $('bwGenre').onchange=e=>{const d=GBPM[e.target.value]-GBPM[draft.genre];draft.genre=e.target.value;draft.blocks.forEach(b=>{b.bpm=Math.max(60,Math.min(190,b.bpm+d))});renderBuilder()};
   $('blocks').addEventListener('input',onBlockInput);$('blocks').addEventListener('change',onBlockInput);$('blocks').addEventListener('click',onBlockClick);
   document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{draft.blocks.push(newBlock(b.dataset.add));renderBuilder()});
@@ -1054,7 +1051,7 @@ function renderStations(){
   $('stations').innerHTML='';
   allStations().forEach(st=>card(st,$('stations')));
 }
-function selectStation(st){cur=st;D=st.len*60;if(!st.custom)$('len').value=String(st.len);$('lenField').hidden=!!st.custom;$('editW').hidden=$('plEdit').hidden=!st.custom;$('editW').textContent=st.w&&(st.w.sample||st.w.today)?'Customize this workout':'Edit this workout';$('plEdit').textContent=st.w&&(st.w.sample||st.w.today)?'Customize':'Edit';buildPlan();renderStations();resetView();if(S.state==='playing'||S.state==='paused')start();else{S.state='idle';setPlay()}}
+function selectStation(st){cur=st;D=st.len*60;if(!st.custom)$('len').value=String(st.len);$('lenField').hidden=!!st.custom;$('editW').hidden=!st.custom;$('editW').textContent=st.w&&(st.w.sample||st.w.today)?'Customize this workout':'Edit this workout';buildPlan();renderStations();resetView();if(S.state==='playing'||S.state==='paused')start();else{S.state='idle';setPlay()}}
 function resetView(){renderPlanList();markPlan(-1);const p=planAt(0);$('stName').textContent=cur.name+' · '+cur.gName;
   if(S.state!=='playing'&&S.state!=='paused'){$('track').textContent=mode==='songs'?(songs.length?'Press play to start your songs':'Add songs to mix your own music'):'Press play to drop the first mix';$('trackMeta').textContent=Math.round(plan.total/60)+' min session · '+plan.segs.length+' segments'}
   $('bpm').textContent=Math.round(p.bpm+offset);showSeg(0);cue('Coach',p.seg.cue);drawTL(0)}
