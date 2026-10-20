@@ -104,6 +104,12 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
 .drop small{color:var(--muted);font-size:12px;line-height:1.4}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 #libStatus{font-size:12px;color:var(--muted);margin:0;min-height:1.2em}
+.backup{margin-top:24px;display:grid;gap:10px}
+.backup .rack-actions{margin-top:0}
+.bk-note{margin:0;font-size:13px;color:var(--muted);line-height:1.45}
+.bk-status{font-size:12px;color:var(--muted);margin:0;min-height:1.2em;line-height:1.45}
+.bk-restore{display:inline-flex;cursor:pointer}
+.bk-restore:focus-within .btn{outline:2px solid var(--amber);outline-offset:2px}
 #songList{list-style:none;margin:0;padding:0;display:grid;max-height:340px;overflow:auto}
 .song{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:7px 2px;border-bottom:1px solid var(--line)}
 .song-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
@@ -299,6 +305,12 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
         <div class="cal-head"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
         <div class="cal" id="cal" aria-label="Last five weeks"></div>
         <ol id="recent"></ol>
+      </section>
+      <section class="backup" aria-label="Backup">
+        <h2 class="eyebrow">Backup</h2>
+        <p class="bk-note" id="bkNote"></p>
+        <div class="rack-actions"><button class="btn" id="bkSave">Back up</button><label class="bk-restore"><input class="sr" type="file" id="bkFile" accept=".json,application/json"><span class="btn">Restore</span></label></div>
+        <p id="bkStatus" class="bk-status" aria-live="polite"></p>
       </section>
       <div class="lib">
         <div class="lib-head"><h2 class="eyebrow">My songs</h2><span class="eyebrow" id="libCount">0 songs</span></div>
@@ -1022,6 +1034,29 @@ function updateMini(){const show=narrowMQ.matches&&tab!=='play'&&(S.state==='pla
   $('mpLabel').textContent=$('segLabel').textContent;$('mpCount').textContent=S.state==='paused'?'Paused · '+$('segCount').textContent:$('segCount').textContent;
   $('mpDone').hidden=$('doneBtn').hidden||S.state!=='playing';$('mpDone').textContent=/rest/i.test($('doneBtn').textContent)&&/Skip/.test($('doneBtn').textContent)?'Skip rest':'Done';
   $('mpIcon').setAttribute('d',S.state==='playing'?'M3 1.5h3.5v13H3zM9.5 1.5H13v13H9.5z':'M3 1.5v13l11-6.5z');$('mpPlay').setAttribute('aria-label',S.state==='playing'?'Pause':'Resume')}
+/* backup: history, workouts, week plan and settings (not songs) as a JSON file */
+const BK_KEYS=['pacemix-history','pacemix-workouts','pacemix-week','pacemix-shuffle','pacemix-settings','pacemix-mode','pacemix-tmatch'];
+const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function bkNote(){let t=0;try{t=+localStorage.getItem('pacemix-backup-at')||0}catch(e){}
+  if(!t){$('bkNote').textContent=HIST.length?'Not backed up yet. Back up before you clear your browser data, then restore afterwards.':'Saves your history, workouts, week plan and settings (not songs) to a file.';return}
+  const d=Math.floor((Date.now()-t)/864e5);$('bkNote').textContent='Last backup: '+(d<1?'today':d===1?'yesterday':d+' days ago')+'. Back up again before you clear your browser data.'}
+async function backup(){const data={};BK_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!=null)data[k]=v}catch(e){}});
+  const name='kinetik-backup-'+dayKey(new Date())+'.json',blob=new Blob([JSON.stringify({app:'kinetik',v:1,at:Date.now(),data})],{type:'application/json'});
+  let shared=false;
+  if(isIOS){try{const f=new File([blob],name,{type:'application/json'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});shared=true}}catch(e){if(e&&e.name==='AbortError'){$('bkStatus').textContent='Backup cancelled.';return}}}
+  if(!shared){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+  try{localStorage.setItem('pacemix-backup-at',String(Date.now()))}catch(e){}
+  $('bkStatus').textContent=isIOS?'Choose Save to Files to keep '+name+' outside the browser.':'Saved '+name+' to your Downloads.';bkNote()}
+async function restore(file){let o=null;try{o=JSON.parse(await file.text())}catch(e){}
+  if(!o||o.app!=='kinetik'||!o.data||typeof o.data!=='object'){$('bkStatus').textContent="That file isn't a Kinetik backup.";return}
+  if(S.state==='playing'||S.state==='paused'){$('bkStatus').textContent='Stop your workout before restoring.';return}
+  const when=o.at?new Date(o.at).toLocaleDateString():'an earlier date';
+  if(!confirm('Restore the backup from '+when+'? This replaces your current history, workouts, week plan and settings. Your songs stay as they are.'))return;
+  try{BK_KEYS.forEach(k=>{if(typeof o.data[k]==='string')localStorage.setItem(k,o.data[k]);else localStorage.removeItem(k)});localStorage.setItem('pacemix-backup-at',String(o.at||Date.now()));sessionStorage.setItem('kinetik-restored','1')}
+  catch(e){$('bkStatus').textContent="Couldn't restore: this browser's storage isn't available.";return}
+  location.reload()}
+function initBackup(){bkNote();$('bkSave').onclick=backup;$('bkFile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)restore(f)};
+  try{if(sessionStorage.getItem('kinetik-restored')){sessionStorage.removeItem('kinetik-restored');setTab('me');$('bkStatus').textContent='Backup restored.'}}catch(e){}}
 function initShell(){document.body.dataset.tab=tab;
   document.querySelectorAll('.tabbar button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
   $('mpInfo').onclick=()=>setTab('play');$('mpDone').onclick=advance;$('mpPlay').onclick=()=>$('play').click();
@@ -1132,7 +1167,7 @@ $('back15').onclick=()=>{if(S.cur)seekTo(S.cur.el.currentTime-15)};
 $('fwd15').onclick=()=>{if(S.cur)seekTo(S.cur.el.currentTime+15)};
 $('tmatch').onchange=e=>{tempoMode=e.target.value;try{localStorage.setItem('pacemix-tmatch',tempoMode)}catch(err){}};
 renderSongs();dbLoad().then(list=>{list=list.filter(x=>x&&x.blob);songs=list.concat(songs.filter(s=>!list.some(x=>x.id===s.id))).sort((a,b)=>(a.added||0)-(b.added||0));renderSongs();if(S.state==='idle')resetView()});
-loadCustoms();initBuilder();initTraining();initShell();
+loadCustoms();initBuilder();initTraining();initShell();initBackup();
 readCols();buildPlan();renderStations();$('len').value=String(cur.len);resetView();setPlay();initToday();
 new ResizeObserver(()=>drawTL(S.state==='playing'||S.state==='paused'?ctx.currentTime-S.t0:0)).observe($('tl'));
 requestAnimationFrame(loop);
