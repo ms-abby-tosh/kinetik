@@ -145,6 +145,14 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
 .eq-group{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 16px;min-width:0}
 .eq-group legend{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0;margin-bottom:4px}
 .eq-group .toggle{color:var(--fg);min-height:36px;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{appearance:none;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--fg);font:inherit;font-size:13px;padding:6px 12px;min-height:36px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--ink);font-weight:600}
+.chip:disabled{opacity:.35;cursor:default}
+.chip:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.chip.sm{font-size:12px;padding:3px 9px;min-height:30px}
+.wk .chips{grid-column:2}
+.td-list li.td-sec{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);border-bottom:0;padding:12px 0 2px}
 .builder{background:var(--bg);border:1px solid var(--amber);border-radius:12px;padding:16px;display:grid;gap:12px;min-width:0}
 .bw-head,.bw-meta,.bw-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .bw-actions{justify-content:flex-start}
@@ -296,6 +304,10 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
         <p class="today-det" id="tdDet">Chest, shoulders, triceps and biceps</p>
         <div class="setup-row"><label class="field">Setup <select id="equip"></select></label><button class="linkish" id="setupEdit" aria-expanded="false">Edit equipment</button></div>
         <div id="setupEd" class="setup-ed" hidden></div>
+        <div class="setup-row"><label class="field">Focus <select id="tdFocusSel"></select></label><label class="field">Length <select id="tdDur"><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option></select></label></div>
+        <div class="chips" id="tdTypes" role="group" aria-label="Training types, up to 3"></div>
+        <div class="setup-row" id="tdCardio" hidden><label class="field">Cardio <select id="tdCs"><option value="steady">Steady</option><option value="int">Intervals</option></select></label><label class="field">On <select id="tdMach"></select></label></div>
+        <p class="bk-note" id="tdOv" hidden>Changed for today only. <button class="linkish" id="tdReset">Back to my week plan</button></p>
         <div class="today-acts"><button class="play small" id="tdGo">Load today's workout</button><button class="btn" id="tdShuffle">Shuffle</button><button class="btn" id="tdCustom">Customize</button></div>
         <ol class="td-list" id="tdList"></ol>
         <button class="linkish" id="tdWeek" aria-expanded="false">Edit my week</button>
@@ -900,63 +912,170 @@ const curSetup=()=>SET.setups.find(s=>s.id===SET.setup)||SET.setups[0];
 const canDo=(req,items)=>req.split('+').every(i=>!i||items.includes(i));
 /* how loaded an exercise is: the first big lift of a group uses the heaviest kit available */
 const loadRank=req=>req.includes('barbell')?3:/dumbbells|kettlebell|cables/.test(req)?2:req?1:0;
-const FOCUS={
-  upper:{name:'Upper body',det:'Chest, shoulders, triceps and biceps',genre:'hiphop',mix:[['chest',2],['shoulders',2],['triceps',1],['biceps',1]]},
-  push:{name:'Chest & triceps',det:'Pressing day: chest, triceps, front delts',genre:'hiphop',mix:[['chest',3],['triceps',2],['shoulders',1]]},
-  arms:{name:'Shoulders & arms',det:'Delts, biceps and triceps',genre:'hiphop',mix:[['shoulders',2],['biceps',2],['triceps',2]]},
-  back:{name:'Back & biceps',det:'Pulling day: back, rear delts, biceps',genre:'hiphop',mix:[['back',4],['biceps',2]]},
-  legs:{name:'Leg day',det:'Quads, glutes, hamstrings and calves',genre:'house',mix:[['legs',4],['posterior',1]]},
-  post:{name:'Posterior chain',det:'Glutes, hamstrings and lower back',genre:'hiphop',mix:[['posterior',4],['back',1]]},
-  ant:{name:'Anterior chain',det:'Quads, chest, front delts and core',genre:'house',mix:[['legs',2],['chest',1],['shoulders',1],['core',1]]},
-  full:{name:'Full body',det:'One move for every major muscle group',genre:'house',mix:[['legs',1],['back',1],['chest',1],['shoulders',1],['posterior',1],['core',1]]},
-  core:{name:'Core',det:'Abs and obliques',genre:'house',mix:[['core',5]]},
-  hiit:{name:'Cardio intervals',det:'HIIT: 40 seconds on, 20 off',station:'hiit'},
-  spin:{name:'Spin',det:'Climbs and sprints on the bike',station:'spin'},
-  run:{name:'Run',det:'Treadmill or outdoor run at running cadence',station:'run'},
-  walk:{name:'Evening walk',det:'La Dolce Vita stroll, easy pace',station:'stroll'},
-  pilates:{name:'Pilates',det:'Mat class for core and control',station:'pilates'},
-  stretch:{name:'Stretch & recover',det:'Full-body stretching',station:'stretch'},
-  rest:{name:'Rest day',det:'Recover today. A walk or a stretch is a bonus.',station:null}};
-const DEF_WEEK={0:'stretch',1:'upper',2:'legs',3:'hiit',4:'back',5:'full',6:'walk'};
-let week={...DEF_WEEK},shuf={date:'',n:0},todayW=null;
+/* bands, TRX, BOSU and medicine ball moves for strength and endurance */
+[['chest',[['TRX chest press',1,'trx'],['Band chest press',0,'bands'],['BOSU push-ups',0,'bosu'],['Medicine ball push-ups',0,'medball']]],
+ ['shoulders',[['Band overhead press',0,'bands'],['Band lateral raises',0,'bands'],['Band pull-aparts',0,'bands'],['TRX Y-raises',0,'trx']]],
+ ['triceps',[['Band pushdowns',0,'bands'],['TRX triceps extensions',0,'trx']]],
+ ['biceps',[['Band curls',0,'bands'],['TRX biceps curls',0,'trx']]],
+ ['back',[['TRX rows',1,'trx'],['Band rows',0,'bands'],['Band lat pulldowns',0,'bands'],['Band face pulls',0,'bands']]],
+ ['legs',[['TRX pistol squats',0,'trx'],['BOSU squats',0,'bosu'],['Banded squats',0,'bands'],['Medicine ball squats',0,'medball']]],
+ ['posterior',[['Banded glute bridges',0,'bands'],['Band monster walks',0,'bands'],['TRX hamstring curls',0,'trx'],['Band good mornings',0,'bands']]],
+ ['core',[['TRX pikes',0,'trx'],['TRX body saws',0,'trx'],['BOSU planks',0,'bosu'],['Medicine ball Russian twists',0,'medball'],['Band Pallof press',0,'bands'],['BOSU crunches',0,'bosu']]]].forEach(([g,l])=>LIB[g].push(...l));
+/* [name, equipment, focus tags]: u upper, l lower, c core, b back, f any focus */
+const FUNC=[['Kettlebell swings','kettlebell','lb'],['Turkish get-ups','kettlebell','f'],['Kettlebell clean and press','kettlebell','u'],['Kettlebell goblet squat to press','kettlebell','f'],["Kettlebell farmer's carry",'kettlebell','f'],
+  ['Dumbbell thrusters','dumbbells','f'],["Dumbbell farmer's carry",'dumbbells','f'],['Dumbbell man-makers','dumbbells','f'],['Dumbbell reverse lunge to press','dumbbells','lu'],
+  ['Medicine ball slams','medball','f'],['Wall balls','medball','l'],['Medicine ball rotational throws','medball','c'],['Medicine ball chest passes','medball','u'],
+  ['TRX power pulls','trx','ub'],['TRX atomic push-ups','trx','uc'],['TRX lunges','trx','l'],['TRX squat to row','trx','lb'],
+  ['Band woodchops','bands','c'],['Band squat to row','bands','lb'],['Band push-pull','bands','ub'],['BOSU burpees','bosu','f'],['BOSU lunges','bosu','l'],['BOSU mountain climbers','bosu','c'],
+  ['Burpees','','f'],['Bear crawls','','f'],['Inchworm to push-up','','uc'],['Lunge with rotation','','lc'],['Crab walks','','ub'],['Squat thrusts','','f'],['Plank to push-up','','uc'],['Superman to plank','','bc']];
+const AGI=[['T-drill','cones'],['5-10-5 shuttle','cones'],['Cone zig-zag sprints','cones'],['Lateral cone shuffles','cones'],['Four-cone box drill','cones'],['Sprint and backpedal','cones'],
+  ['BOSU lateral hops','bosu'],['BOSU quick feet','bosu'],['Skipping · fast feet','rope'],['Medicine ball overhead throws','medball'],['Medicine ball chest pass sprints','medball'],
+  ['Lateral shuffles',''],['Skater hops',''],['High knees',''],['Carioca',''],['Line hops',''],['Quick feet',''],['Tuck jumps',''],['Broad jumps',''],['Single-leg hops',''],['Sprint starts','']];
+const HIITX=[['Burpees',''],['Jump squats',''],['Mountain climbers',''],['High knees',''],['Jumping lunges',''],['Plank jacks',''],['Skater hops',''],['Squat thrusts',''],
+  ['Kettlebell swings','kettlebell'],['Kettlebell snatches','kettlebell'],['Dumbbell thrusters','dumbbells'],['Medicine ball slams','medball'],['Skipping · double-unders','rope'],['BOSU burpees','bosu'],['TRX jump squats','trx'],['Rower sprints','rower'],['Bike sprints','bike']];
+const MOB=[['Cat-cow','','bc'],["World's greatest stretch",'','lf'],['Hip 90/90 switches','','l'],['Thoracic rotations','','ub'],['Band shoulder dislocates','bands','u'],['Deep squat hold','','l'],['Thread the needle','','ub'],
+  ['Downward dog to cobra','','cf'],['Ankle rocks','','l'],['Scorpion stretch','','bc'],['Wall slides','','u'],['Leg swings','','l'],['Arm circles','','u'],['Dead hang','pullup','ub']];
+const ROLL=[['Foam roll · quads','roller','l'],['Foam roll · hamstrings','roller','l'],['Foam roll · glutes','roller','lb'],['Foam roll · calves','roller','l'],['Foam roll · upper back','roller','ubc'],['Foam roll · lats','roller','ub']];
+const STRETCH=[['Stretch · hamstrings','','l'],['Stretch · quads','','l'],['Stretch · hip flexors','','lc'],['Stretch · glutes','','lb'],['Stretch · calves','','l'],['Stretch · chest','','u'],['Stretch · shoulders','','u'],
+  ['Stretch · triceps','','u'],['Stretch · lats','','ub'],['Spinal twist','','bc'],['Cobra','','c'],["Child's pose",'','f']];
+/* cardio: [name, steady BPM, push BPM]; rope and bodyweight rotate through moves instead of one machine */
+const CARDIO={treadmill:['Treadmill',158,170],bike:['Bike',124,134],rower:['Rower',118,128],elliptical:['Elliptical',126,136],stairs:['Stair climber',116,126],rope:['Skipping rope',126,138],
+  outdoor:['Run outside',158,170],walk:['Walk outside',104,116],bodyweight:['Bodyweight cardio',122,132]};
+const CMOVES={rope:['Skipping · easy bounce','Skipping · alternate feet','Skipping · high knees','Skipping · side to side'],bodyweight:['Jumping jacks','Shadow boxing','High knees','Step jacks','Butt kicks','Skaters']};
+const CM_KEYS=['treadmill','bike','rower','elliptical','stairs','rope'];
+const cardioOpts=items=>CM_KEYS.filter(k=>items.includes(k)).concat(['outdoor','walk','bodyweight']);
+const FOCI={upper:{name:'Upper body',det:'Chest, shoulders and arms',tag:'u',g:['chest','shoulders','triceps','biceps','chest','shoulders','triceps','biceps']},
+  lower:{name:'Lower body',det:'Quads, glutes, hamstrings and calves',tag:'l',g:['legs','posterior','legs','posterior','legs','posterior']},
+  core:{name:'Core',det:'Abs, obliques and stability',tag:'c',g:['core','core','core','core','core','core']},
+  back:{name:'Back',det:'Lats, upper back and posterior chain',tag:'b',g:['back','back','posterior','back','biceps','back']},
+  full:{name:'Full body',det:'Every major muscle group',tag:'f',g:['legs','back','chest','posterior','shoulders','core','legs','back']},
+  rest:{name:'Rest day',det:'Recover today. A walk or a stretch is a bonus.'}};
+/* w = share of the main time; TYPE_KEYS is display order, TYPE_ORDER is the order blocks run in */
+const TYPES={strength:{name:'Strength',w:1.6},endurance:{name:'Endurance',w:1.1},cardio:{name:'Cardio',w:1},hiit:{name:'HIIT',w:.8},functional:{name:'Functional',w:1.1},agility:{name:'Agility',w:.8},mobility:{name:'Mobility',w:.8}};
+const TYPE_KEYS=Object.keys(TYPES),TYPE_ORDER=['agility','strength','functional','endurance','cardio','hiit','mobility'];
+const WARMCOOL={30:[300,300],45:[420,420],60:[480,600]};
+const DEF_WEEK={0:{f:'full',types:['mobility']},1:{f:'upper',types:['strength','functional']},2:{f:'lower',types:['strength','agility']},3:{f:'full',types:['hiit','cardio']},
+  4:{f:'back',types:['strength','endurance']},5:{f:'full',types:['functional','agility','cardio']},6:{f:'full',types:['cardio'],cs:'steady'}};
+/* week plans saved before training types existed */
+const LEGACY={upper:['upper',['strength']],push:['upper',['strength']],arms:['upper',['strength']],back:['back',['strength']],legs:['lower',['strength']],post:['lower',['strength']],ant:['full',['strength']],
+  full:['full',['strength']],core:['core',['strength']],hiit:['full',['hiit']],spin:['full',['cardio'],'int','bike'],run:['full',['cardio'],'steady','treadmill'],walk:['full',['cardio'],'steady','walk'],
+  pilates:['core',['mobility']],stretch:['full',['mobility']],rest:['rest',[]]};
+function normDay(v){if(typeof v==='string'){const L=LEGACY[v]||LEGACY.rest;v={f:L[0],types:L[1],cs:L[2],m:L[3]}}v=v||{};
+  const o={f:FOCI[v.f]?v.f:'full',types:(Array.isArray(v.types)?v.types:[]).filter((k,i,a)=>TYPES[k]&&a.indexOf(k)===i).slice(0,3)};
+  if(o.f==='rest')o.types=[];else if(!o.types.length)o.types=['strength'];
+  if(v.cs==='steady'||v.cs==='int')o.cs=v.cs;if(CARDIO[v.m])o.m=v.m;return o}
+let week={},shuf={date:'',n:0},todayW=null,tov=null;
+for(let d=0;d<7;d++)week[d]=normDay(DEF_WEEK[d]);
 function rng(a){a>>>=0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function hashStr(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
-function genWorkout(fk,seed){const F=FOCUS[fk],r=rng(hashStr(seed)),used=new Set(),ex=[],items=curSetup().items;
-  F.mix.forEach(([g,n])=>{const pool=LIB[g].filter(e=>!used.has(e[0])&&canDo(e[2],items));for(let i=0;i<n&&pool.length;i++){const big0=pool.filter(e=>e[1]),top=Math.max(0,...big0.map(e=>loadRank(e[2]))),big=big0.filter(e=>loadRank(e[2])===top);const src=i===0&&big.length&&['chest','back','legs','posterior','shoulders'].includes(g)?big:pool;const e=src[Math.floor(r()*src.length)];pool.splice(pool.indexOf(e),1);used.add(e[0]);ex.push(e)}});
-  ex.sort((a,b)=>b[1]-a[1]);
-  const base=GBPM[F.genre],blocks=[{t:'warm',name:'Warm-up',d:300,e:.45,bpm:base-6}];
-  ex.forEach(([n,c],i)=>{if(i)blocks.push({t:'rest',name:'Set up next',d:60,e:.35,bpm:base});
-    const heavy=c&&i<2;blocks.push({t:'int',name:n,rounds:heavy?4:3,w:c?60:45,r:heavy?120:c?90:60,e:.85,bpm:base+2,unit:'Set'})});
-  blocks.push({t:'cool',name:'Stretch it out',d:300,e:.4,bpm:base-8});
-  return{id:'today',name:F.name,genre:F.genre,today:true,blocks}}
-function todayInfo(){const d=new Date(),dow=d.getDay(),fk=FOCUS[week[dow]]?week[dow]:'rest';return{d,dow,fk,F:FOCUS[fk],key:d.toDateString()}}
-function loadWeek(){try{const w=JSON.parse(localStorage.getItem('pacemix-week')||'null');if(w)week={...DEF_WEEK,...w};const sh=JSON.parse(localStorage.getItem('pacemix-shuffle')||'null');if(sh)shuf=sh}catch(e){}}
-function saveWeek(){try{localStorage.setItem('pacemix-week',JSON.stringify(week));localStorage.setItem('pacemix-shuffle',JSON.stringify(shuf))}catch(e){}}
-function renderToday(){const {dow,fk,F,key}=todayInfo();$('tdDay').textContent='Today · '+DAYS[dow];$('tdFocus').textContent=F.name;
-  if(F.mix){const n=shuf.date===key?shuf.n:0;todayW=genWorkout(fk,key+'|'+fk+'|'+[...curSetup().items].sort().join(',')+'|'+n);const c=todayW.blocks.filter(b=>b.t==='int').length;
-    $('tdDet').textContent=F.det+' · '+curSetup().name+' · '+c+' exercises · '+Math.round(wTotal(todayW)/60)+' min';
-    const tl=$('tdList');tl.innerHTML='';todayW.blocks.filter(b=>b.t==='int').forEach(b=>{const li=document.createElement('li');li.innerHTML='<span></span><em></em>';li.querySelector('span').textContent=b.name;li.querySelector('em').textContent=b.rounds+' × '+fmt(b.w);tl.appendChild(li)});tl.hidden=false;$('tdGo').hidden=false;$('tdGo').textContent="Load today's workout";$('tdShuffle').hidden=false;$('tdCustom').hidden=false}
-  else{todayW=null;$('tdList').hidden=true;$('tdDet').textContent=F.det;const st=STATIONS.find(x=>x.id===F.station);$('tdGo').hidden=!st;if(st)$('tdGo').textContent='Load '+st.name;$('tdShuffle').hidden=true;$('tdCustom').hidden=true}}
-function loadToday(){const {F}=todayInfo();if(todayW)selectStation(customStation(todayW));else{const st=STATIONS.find(x=>x.id===F.station);if(st)selectStation(st)}}
-function renderWeekEd(){const box=$('weekEd'),today=new Date().getDay();box.innerHTML='';
-  [1,2,3,4,5,6,0].forEach(d=>{const l=document.createElement('label');l.className='wk'+(d===today?' is-today':'');l.innerHTML='<span>'+DAYS[d].slice(0,3)+'</span>';
-    const sel=document.createElement('select');sel.id='wk'+d;sel.setAttribute('aria-label',DAYS[d]+' focus');Object.keys(FOCUS).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=FOCUS[k].name;sel.appendChild(o)});sel.value=week[d];
-    sel.onchange=()=>{week[d]=sel.value;saveWeek();if(d===today){const was=cur.id==='today'||cur.id===FOCUS[week[d]]?.station;renderToday();if(cur.id==='today')loadToday()}};
-    l.appendChild(sel);box.appendChild(l)})}
-function initToday(){loadWeek();renderToday();
+function genWorkout(cfg,seed){const F=FOCI[cfg.f],r=rng(hashStr(seed)),items=curSetup().items,used=new Set(),dur=WARMCOOL[cfg.dur]?cfg.dur:45;
+  const pickR=a=>a[Math.floor(r()*a.length)];
+  const fits=tags=>F.tag==='f'||tags.includes('f')||tags.includes(F.tag);
+  /* one unused move you have the kit for, preferring ones that match */
+  const take=(list,match)=>{let pool=list.filter(e=>!used.has(e[0])&&canDo(e[1],items));const pref=pool.filter(match);if(pref.length)pool=pref;if(!pool.length)return null;const e=pickR(pool);used.add(e[0]);return e};
+  const lift=(g,big)=>{const pool=LIB[g].filter(e=>!used.has(e[0])&&canDo(e[2],items));if(!pool.length)return null;let src=pool;
+    if(big){const b0=pool.filter(e=>e[1]);if(b0.length){const top=Math.max(...b0.map(e=>loadRank(e[2])));src=b0.filter(e=>loadRank(e[2])===top)}}const e=pickR(src);used.add(e[0]);return e};
+  /* straight sets of each move until the time share is used (first move always fits) */
+  const sets=(bud,next,rounds,w,rr,gap,e,bpm,unit,gapName,again)=>{const out=[];let t=0;
+    for(let k=0;k<24;k++){const x=next(k);if(!x)continue;const R=typeof rounds==='function'?rounds(x,k):[rounds,w,rr],cost=R[0]*R[1]+(R[0]-1)*R[2]+(out.length?gap:0);
+      if(out.length&&t+cost>bud*1.1)break;if(out.length)out.push({t:'rest',name:gapName,d:gap,e:.35,bpm});
+      out.push({t:'int',name:x[0],rounds:R[0],w:R[1],r:R[2],e,bpm,unit});t+=cost}
+    /* small kit can run out of moves: reuse earlier ones rather than skip the type, then add rounds to fill the time */
+    if(!out.length&&!again){const keep=[...used];used.clear();const res=sets(bud,next,rounds,w,rr,gap,e,bpm,unit,gapName,true);keep.forEach(x=>used.add(x));return res}
+    if(t&&t<bud*.85)out.forEach(b=>{if(b.t==='int')b.rounds=Math.min(6,Math.max(b.rounds,Math.round(b.rounds*bud/t)))});return out};
+  const big=['chest','back','legs','posterior','shoulders'];
+  let machine=null;
+  const B={
+    strength:bud=>sets(bud,k=>k<F.g.length*2?lift(F.g[k%F.g.length],k<2&&big.includes(F.g[k])):null,(x,k)=>{const heavy=x[1]&&k<2;return[heavy?4:3,x[1]?60:45,heavy?90:x[1]?75:60]},0,0,45,.85,92,'Set','Set up next'),
+    endurance:bud=>sets(bud,k=>lift(F.g[k%F.g.length],false),3,45,30,30,.75,120,'Set','Set up next'),
+    functional:bud=>sets(bud,()=>take(FUNC,e=>fits(e[2])),3,40,20,30,.85,124,'Round','Set up next'),
+    agility:bud=>sets(bud,k=>take(AGI,e=>k%2?!e[1]:!!e[1]),4,20,40,30,1,132,'Round','Set up next'),
+    hiit:bud=>sets(bud,k=>take(HIITX,e=>k%2?!e[1]:!!e[1]),4,40,20,60,.95,134,'Round','Recover'),
+    /* about a minute per move; holds get longer (up to 3:00) when there are fewer moves than minutes */
+    mobility:bud=>{const want=Math.max(3,Math.round(bud/60)),list=[];
+      while(list.length<want){const x=(list.length<2&&take(ROLL,e=>fits(e[2])))||take(MOB,e=>fits(e[2]));if(!x)break;list.push(x)}
+      const d=Math.min(180,Math.max(45,Math.round(bud/Math.max(1,list.length)/15)*15));return list.map(x=>({t:'work',name:x[0],d,e:.4,bpm:100}))},
+    cardio:bud=>{const opts=cardioOpts(items),mach=CM_KEYS.filter(k=>k!=='rope'&&items.includes(k));
+      machine=cfg.m&&opts.includes(cfg.m)?cfg.m:mach.length?pickR(mach):items.includes('rope')?'rope':'bodyweight';
+      const [nm,lo,hi]=CARDIO[machine],moves=CMOVES[machine],cs=cfg.cs||(cfg.types.length===1?'steady':'int'),grp=nm+(cs==='steady'?' · steady':' · intervals'),out=[];let t=0,i=0;
+      const add=(name,d,e,bpm)=>{out.push({t:'work',name,d,e,bpm,grp});t+=d};
+      if(cs==='steady'){if(!moves)add(nm+' · steady pace',Math.round(bud),.7,lo);else while(bud-t>=60)add(moves[i++%moves.length],Math.min(180,Math.round(bud-t)),.7,lo);return out}
+      const hw=bud>=900&&!moves?180:60,ew=hw===180?120:60;
+      while(bud-t>=hw){add(moves?moves[i++%moves.length]:nm+' · push',hw,.9,hi);if(bud-t>=30)add(moves?(machine==='rope'?'Skipping · easy':'March in place'):nm+' · easy',Math.min(ew,Math.round(bud-t)),.45,lo)}
+      if(!out.length)add(nm+' · steady pace',Math.round(bud),.7,lo);return out}};
+  const types=TYPE_ORDER.filter(k=>cfg.types.includes(k)),[wu,cd]=WARMCOOL[dur],main=dur*60-wu-cd,wsum=types.reduce((a,k)=>a+TYPES[k].w,0);
+  const fast=types.some(k=>k==='agility'||k==='hiit'),w1=Math.round(wu*.4);
+  const blocks=[{t:'warm',name:'Joint circles',d:w1,e:.4,bpm:108},{t:'warm',name:fast?'Dynamic warm-up · skips and shuffles':'Dynamic warm-up',d:wu-w1,e:.55,bpm:116}];
+  types.forEach(k=>{const bl=B[k](main*TYPES[k].w/wsum);if(!bl.length)return;bl.forEach(b=>{b.ty=k});
+    blocks.push({t:'rest',name:'Next up: '+TYPES[k].name,d:45,e:.35,bpm:bl[0].bpm},...bl)});
+  /* cool-down: alternate foam rolling (if you have a roller) with stretches for today's focus */
+  let ct=0,n=0;const roll=items.includes('roller');
+  while(cd-ct>=45){const x=(roll&&n%2===0&&take(ROLL,e=>fits(e[2])))||take(STRETCH,e=>fits(e[2]));if(!x)break;const d=Math.min(60,cd-ct);
+    blocks.push({t:'cool',name:x[0],d,e:.35,bpm:Math.round(100-10*ct/cd)});ct+=d;n++}
+  if(cd-ct>=10)blocks.push({t:'cool',name:'Breathe',d:cd-ct,e:.3,bpm:90});
+  const genre=types.length===1?{strength:'hiphop',mobility:'chill',cardio:machine==='treadmill'||machine==='outdoor'?'dnb':machine==='walk'?'stroll':'house'}[types[0]]||'house':'house';
+  return{id:'today',name:F.name+' · '+types.map(k=>TYPES[k].name).join(' + '),genre,today:true,blocks}}
+function todayInfo(){const d=new Date(),dow=d.getDay(),key=d.toDateString(),ov=!!tov&&tov.date===key,cfg={...(ov?tov:week[dow]),dur:SET.dur};return{d,dow,key,cfg,ov,F:FOCI[cfg.f]}}
+function loadWeek(){try{const w=JSON.parse(localStorage.getItem('pacemix-week')||'null');if(w)for(let d=0;d<7;d++)if(w[d]!=null)week[d]=normDay(w[d]);
+  const sh=JSON.parse(localStorage.getItem('pacemix-shuffle')||'null');if(sh)shuf=sh;
+  const o=JSON.parse(localStorage.getItem('pacemix-today')||'null');if(o&&o.date)tov={...normDay(o),date:o.date}}catch(e){}}
+function saveWeek(){try{localStorage.setItem('pacemix-week',JSON.stringify(week));localStorage.setItem('pacemix-shuffle',JSON.stringify(shuf));localStorage.setItem('pacemix-today',JSON.stringify(tov))}catch(e){}}
+function toggleTypes(list,k){return list.includes(k)?list.filter(x=>x!==k):list.length<3?[...list,k]:list}
+function renderChips(box,sel,onTap,small){box.innerHTML='';TYPE_KEYS.forEach(k=>{const b=document.createElement('button');b.type='button';b.className='chip'+(small?' sm':'');b.dataset.k=k;b.textContent=TYPES[k].name;
+  const on=sel.includes(k);b.setAttribute('aria-pressed',String(on));b.disabled=!on&&sel.length>=3;b.onclick=()=>onTap(k);box.appendChild(b)})}
+function afterToday(){renderToday();if(cur.id==='today')loadToday()}
+/* changes on the Today tab apply to today only; the week plan stays as it is */
+function setToday(patch){const {key,cfg}=todayInfo();tov={...normDay({...cfg,...patch}),date:key};saveWeek();afterToday()}
+function renderToday(){const {dow,key,cfg,ov,F}=todayInfo(),items=curSetup().items,rest=cfg.f==='rest';
+  $('tdDay').textContent='Today · '+DAYS[dow];$('tdFocus').textContent=F.name;$('tdFocusSel').value=cfg.f;$('tdDur').value=String(cfg.dur);$('tdOv').hidden=!ov;
+  renderChips($('tdTypes'),cfg.types,k=>{const t=toggleTypes(cfg.types,k);if(t.length)setToday({f:cfg.f==='rest'?'full':cfg.f,types:t})});
+  const cOn=cfg.types.includes('cardio');$('tdCardio').hidden=!cOn;
+  if(cOn){const opts=cardioOpts(items),ms=$('tdMach');$('tdCs').value=cfg.cs||(cfg.types.length===1?'steady':'int');
+    ms.innerHTML='<option value="any">Any available</option>'+opts.map(k=>'<option value="'+k+'">'+CARDIO[k][0]+'</option>').join('');ms.value=cfg.m&&opts.includes(cfg.m)?cfg.m:'any'}
+  ['tdList','tdGo','tdShuffle','tdCustom'].forEach(id=>{$(id).hidden=rest});
+  if(rest){todayW=null;$('tdDet').textContent=F.det+' Pick a training type to work out anyway.';return}
+  const n=shuf.date===key?shuf.n:0;todayW=genWorkout(cfg,[key,cfg.f,cfg.types.join('+'),cfg.cs||'',cfg.m||'',cfg.dur,[...items].sort().join(','),n].join('|'));
+  $('tdDet').textContent=F.det+' · '+curSetup().name+' · '+Math.round(wTotal(todayW)/60)+' min';$('tdGo').textContent="Load today's workout";
+  /* one row per exercise under a heading per type; cardio collapses to one row */
+  const tl=$('tdList');tl.innerHTML='';let ty=null,row=null;
+  todayW.blocks.forEach(b=>{if(!b.ty||b.t==='rest')return;
+    if(b.ty!==ty){ty=b.ty;row=null;const h=document.createElement('li');h.className='td-sec';h.textContent=TYPES[ty].name;tl.appendChild(h)}
+    if(b.grp&&row&&row.grp===b.grp){row.d+=b.d;row.em.textContent=fmt(row.d);return}
+    const li=document.createElement('li');li.innerHTML='<span></span><em></em>';li.querySelector('span').textContent=b.grp||b.name;const em=li.querySelector('em');
+    em.textContent=b.t==='int'?b.rounds+' × '+fmt(b.w):fmt(b.d);row=b.grp?{grp:b.grp,d:b.d,em}:null;tl.appendChild(li)})}
+function loadToday(){if(todayW)selectStation(customStation(todayW))}
+function renderWeekEd(focus){const box=$('weekEd'),today=new Date().getDay();box.innerHTML='';
+  [1,2,3,4,5,6,0].forEach(d=>{const row=document.createElement('div');row.className='wk'+(d===today?' is-today':'');row.dataset.d=d;
+    const lab=document.createElement('span');lab.textContent=DAYS[d].slice(0,3);
+    const sel=document.createElement('select');sel.setAttribute('aria-label',DAYS[d]+' focus');Object.keys(FOCI).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=FOCI[k].name;sel.appendChild(o)});sel.value=week[d].f;
+    const chips=document.createElement('div');chips.className='chips';chips.setAttribute('role','group');chips.setAttribute('aria-label',DAYS[d]+' training types, up to 3');chips.hidden=week[d].f==='rest';
+    const upd=(v,k)=>{week[d]=normDay(v);saveWeek();renderWeekEd(k?'[data-d="'+d+'"] [data-k="'+k+'"]':null);if(d===today&&!todayInfo().ov)afterToday()};
+    sel.onchange=()=>upd({...week[d],f:sel.value});
+    renderChips(chips,week[d].types,k=>{const t=toggleTypes(week[d].types,k);if(t.length)upd({...week[d],types:t},k)},true);
+    row.append(lab,sel,chips);box.appendChild(row)});
+  if(focus){const el=box.querySelector(focus);if(el)el.focus()}}
+function initToday(){loadWeek();
+  const fs=$('tdFocusSel');Object.keys(FOCI).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=FOCI[k].name;fs.appendChild(o)});
+  fs.onchange=()=>setToday({f:fs.value});
+  $('tdDur').onchange=e=>{SET.dur=+e.target.value;saveSet();afterToday()};
+  $('tdCs').onchange=e=>setToday({cs:e.target.value});
+  $('tdMach').onchange=e=>setToday({m:e.target.value==='any'?undefined:e.target.value});
+  $('tdReset').onclick=()=>{tov=null;saveWeek();afterToday()};
+  renderToday();
   $('tdGo').onclick=loadToday;
   $('tdShuffle').onclick=()=>{const {key}=todayInfo();shuf={date:key,n:(shuf.date===key?shuf.n:0)+1};saveWeek();renderToday();loadToday()};
   $('tdCustom').onclick=()=>{if(!todayW)return;const c=JSON.parse(JSON.stringify(todayW));c.id='c-'+Date.now().toString(36);c.isNew=true;delete c.today;c.name=todayW.name+' ('+DAYS[new Date().getDay()].slice(0,3)+')';openBuilder(c)};
   $('tdWeek').onclick=()=>{const ed=$('weekEd'),open=ed.hidden;if(open)renderWeekEd();ed.hidden=!open;$('tdWeek').setAttribute('aria-expanded',String(open));$('tdWeek').textContent=open?'Done':'Edit my week'};
-  const {F}=todayInfo();if(todayW||F.station)loadToday()}
+  if(todayW)loadToday()}
 
 /* ---------- training: settings, done, beeps, log, history, gym mode ---------- */
-const SET={setup:'gym',manual:true,beeps:true,unit:'lb'};
+const SET={setup:'gym',dur:45,manual:true,beeps:true,unit:'lb'};
 function loadSet(){try{Object.assign(SET,JSON.parse(localStorage.getItem('pacemix-settings')||'{}'))}catch(e){}
   SET.setups=(Array.isArray(SET.setups)?SET.setups:[]).filter(s=>s&&s.id&&Array.isArray(s.items)).map(s=>({id:String(s.id),name:String(s.name||'My setup'),items:s.items.filter(i=>EQ_ALL.includes(i))}));
   if(!SET.setups.length)SET.setups=JSON.parse(JSON.stringify(DEF_SETUPS));
   if(SET.equip){SET.setup={gym:'gym',bw:'bw'}[SET.equip]||'home';delete SET.equip}  /* old single Equipment menu */
-  if(!SET.setups.some(s=>s.id===SET.setup))SET.setup=SET.setups[0].id}
+  if(!SET.setups.some(s=>s.id===SET.setup))SET.setup=SET.setups[0].id;
+  if(![30,45,60].includes(SET.dur))SET.dur=45}
 function renderSetupSel(){const sel=$('equip');sel.innerHTML='';SET.setups.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;sel.appendChild(o)});sel.value=SET.setup}
 function setupChanged(){saveSet();renderToday();if(cur.id==='today')loadToday()}
 function renderSetupEd(){const box=$('setupEd'),s=curSetup();box.innerHTML='';
@@ -993,7 +1112,7 @@ function persistSession(done){if(!SESS)return;if(done)SESS.done=true;SESS.mins=M
   const i=HIST.findIndex(h=>h.id===SESS.id);const copy=JSON.parse(JSON.stringify(SESS));if(i>=0)HIST[i]=copy;else HIST.push(copy);saveHist();renderProgress()}
 function workoutDays(){return new Set(HIST.filter(qualifies).map(h=>h.day))}
 function streak(){const days=workoutDays(),d=new Date();let n=0;
-  for(let i=0;i<400;i++){const k=dayKey(d);if(days.has(k))n++;else if(i===0||week[d.getDay()]==='rest'){}else break;d.setDate(d.getDate()-1)}return n}
+  for(let i=0;i<400;i++){const k=dayKey(d);if(days.has(k))n++;else if(i===0||week[d.getDay()].f==='rest'){}else break;d.setDate(d.getDate()-1)}return n}
 function renderProgress(){const days=workoutDays(),now=new Date(),n=streak();
   $('stk').textContent=n;$('stkLbl').textContent=n===1?'day streak':'day streak';
   const mk=dayKey(now).slice(0,7),month=HIST.filter(h=>qualifies(h)&&h.day.startsWith(mk)).length;
@@ -1074,7 +1193,7 @@ function updateMini(){const show=narrowMQ.matches&&tab!=='play'&&(S.state==='pla
   $('mpDone').hidden=$('doneBtn').hidden||S.state!=='playing';$('mpDone').textContent=/rest/i.test($('doneBtn').textContent)&&/Skip/.test($('doneBtn').textContent)?'Skip rest':'Done';
   $('mpIcon').setAttribute('d',S.state==='playing'?'M3 1.5h3.5v13H3zM9.5 1.5H13v13H9.5z':'M3 1.5v13l11-6.5z');$('mpPlay').setAttribute('aria-label',S.state==='playing'?'Pause':'Resume')}
 /* backup: history, workouts, week plan and settings (not songs) as a JSON file */
-const BK_KEYS=['pacemix-history','pacemix-workouts','pacemix-week','pacemix-shuffle','pacemix-settings','pacemix-mode','pacemix-tmatch'];
+const BK_KEYS=['pacemix-history','pacemix-workouts','pacemix-week','pacemix-shuffle','pacemix-today','pacemix-settings','pacemix-mode','pacemix-tmatch'];
 const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 function bkNote(){let t=0;try{t=+localStorage.getItem('pacemix-backup-at')||0}catch(e){}
   if(!t){$('bkNote').textContent=HIST.length?'Not backed up yet. Back up before you clear your browser data, then restore afterwards.':'Saves your history, workouts, week plan and settings (not songs) to a file.';return}
