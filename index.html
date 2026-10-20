@@ -697,9 +697,13 @@ function halt(){
 function finish(){commitLog();persistSession(true);logT=-1;logSeg=null;$('logPanel').hidden=true;$('doneBtn').hidden=true;halt();S.state='done';cue('Session complete','Nice work. Pick another station or play this one again.');speak('Session complete. Nice work.');setPlay()}
 
 /* ---------- my songs ---------- */
-async function decodeBlob(blob){if(!ctx)initAudio();const ab=await blob.arrayBuffer();return await ctx.decodeAudioData(ab)}
+/* decode at a low sample rate: a full-rate decode is ~100MB per song and phones run out of memory after the first */
+let dctx=null;
+async function decodeBlob(blob){const ab=await blob.arrayBuffer();
+  try{if(!dctx)dctx=new OfflineAudioContext(1,1,22050);return await dctx.decodeAudioData(ab.slice(0))}
+  catch(e){if(!ctx)initAudio();return await ctx.decodeAudioData(ab)}}
 function detectBPM(buf){
-  const sr=buf.sampleRate,d=buf.getChannelData(0),len=d.length,start=Math.max(0,Math.floor(len/2-sr*15)),end=Math.min(len,start+sr*30),hop=512,env=[];
+  const sr=buf.sampleRate,d=buf.getChannelData(0),len=d.length,start=Math.max(0,Math.floor(len/2-sr*15)),end=Math.min(len,start+sr*30),hop=Math.max(64,Math.round(512*sr/44100)),env=[];
   let y=0,prev=0;const a=2*Math.PI*150/sr;
   for(let i=start;i+hop<end;i+=hop){let e=0;for(let j=i;j<i+hop;j++){y+=a*(d[j]-y);e+=y*y}e=Math.sqrt(e/hop);env.push(Math.max(0,e-prev));prev=e}
   const fps=sr/hop,minL=Math.floor(fps*60/185),maxL=Math.ceil(fps*60/65),sc=[];let best=-1,bl=minL;
@@ -757,16 +761,18 @@ async function startSongs(){
   songTick()}
 let dbp=null;
 function db(){if(!dbp)dbp=new Promise((res,rej)=>{try{const r=indexedDB.open('pacemix',2);r.onupgradeneeded=()=>{const d=r.result;['songs'].forEach(n=>{if(!d.objectStoreNames.contains(n))d.createObjectStore(n,{keyPath:'id'})})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});return dbp}
-async function dbPut(s){try{const d=await db();d.transaction('songs','readwrite').objectStore('songs').put({id:s.id,name:s.name,bpm:s.bpm,blob:s.blob,added:s.added})}catch(e){}}
+async function dbPut(s){try{const d=await db();return await new Promise(res=>{const t=d.transaction('songs','readwrite');t.objectStore('songs').put({id:s.id,name:s.name,bpm:s.bpm,blob:s.blob,added:s.added});t.oncomplete=()=>res(true);t.onerror=t.onabort=()=>res(false)})}catch(e){return false}}
 async function dbDel(id){try{const d=await db();d.transaction('songs','readwrite').objectStore('songs').delete(id)}catch(e){}}
 async function dbLoad(){try{const d=await db();return await new Promise((res,rej)=>{const r=d.transaction('songs').objectStore('songs').getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)})}catch(e){return[]}}
 async function addFiles(files){
   files=files.filter(f=>/^audio\//.test(f.type)||/\.(mp3|m4a|aac|wav|ogg|flac)$/i.test(f.name));
   if(!files.length){$('libStatus').textContent='Those files are not audio. Try MP3, M4A, WAV, OGG or FLAC.';return}
-  let added=0,failed=0;
+  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+  let added=0,failed=[],unsaved=0;
   for(let i=0;i<files.length;i++){const f=files[i];$('libStatus').textContent='Finding the BPM of '+f.name+' ('+(i+1)+' of '+files.length+')';
-    try{let buf=await decodeBlob(f);const s={id:Date.now()+'-'+Math.random().toString(36).slice(2,8),name:f.name.replace(/\.[^.]+$/,''),bpm:detectBPM(buf),blob:f,added:Date.now()};buf=null;songs.push(s);dbPut(s);added++;renderSongs()}catch(e){failed++}}
-  $('libStatus').textContent=(added?'Added '+added+(added===1?' song.':' songs.'):'')+(failed?' '+failed+" couldn't be read (some formats, like protected iTunes files, won't play).":'')+(added?' If a BPM looks off, use ½ or ×2.':'');
+    try{let buf=await decodeBlob(f);const s={id:Date.now()+'-'+Math.random().toString(36).slice(2,8),name:f.name.replace(/\.[^.]+$/,''),bpm:detectBPM(buf),blob:f,added:Date.now()};buf=null;songs.push(s);added++;renderSongs();if(!await dbPut(s))unsaved++}catch(e){failed.push(f.name)}
+    await new Promise(r=>setTimeout(r,60))}
+  $('libStatus').textContent=(added?'Added '+added+(added===1?' song.':' songs.'):'')+(failed.length?' Couldn\'t read: '+failed.join(', ')+' (protected iTunes files won\'t play; for others, try adding them again on their own).':'')+(unsaved?' '+unsaved+(unsaved===1?' song':' songs')+" couldn't be saved on this device (storage may be full), so "+(unsaved===1?'it':'they')+' will be gone next time you open the app.':'')+(added?' If a BPM looks off, use ½ or ×2.':'');
   if(added&&mode==='gen'&&S.state!=='playing'&&S.state!=='paused')setMode('songs')}
 function renderSongs(){const ul=$('songList');$('libCount').textContent=songs.length+(songs.length===1?' song':' songs');
   if(!songs.length){ul.innerHTML='<li class="empty">No songs yet. Add music you own and Kinetik will beat-match it to your workout, crossfading from song to song.</li>';return}
@@ -1127,7 +1133,7 @@ $('seek').addEventListener('change',()=>{const c=S.cur;if(c&&isFinite(c.el.durat
 $('back15').onclick=()=>{if(S.cur)seekTo(S.cur.el.currentTime-15)};
 $('fwd15').onclick=()=>{if(S.cur)seekTo(S.cur.el.currentTime+15)};
 $('tmatch').onchange=e=>{tempoMode=e.target.value;try{localStorage.setItem('pacemix-tmatch',tempoMode)}catch(err){}};
-renderSongs();dbLoad().then(list=>{songs=list.filter(x=>x&&x.blob).sort((a,b)=>(a.added||0)-(b.added||0));renderSongs();if(S.state==='idle')resetView()});
+renderSongs();dbLoad().then(list=>{list=list.filter(x=>x&&x.blob);songs=list.concat(songs.filter(s=>!list.some(x=>x.id===s.id))).sort((a,b)=>(a.added||0)-(b.added||0));renderSongs();if(S.state==='idle')resetView()});
 loadCustoms();initBuilder();initTraining();initShell();
 readCols();buildPlan();renderStations();$('len').value=String(cur.len);resetView();setPlay();initToday();
 new ResizeObserver(()=>drawTL(S.state==='playing'||S.state==='paused'?ctx.currentTime-S.t0:0)).observe($('tl'));
