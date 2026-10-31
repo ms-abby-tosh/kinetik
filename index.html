@@ -145,6 +145,19 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
 .eq-group{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 16px;min-width:0}
 .eq-group legend{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0;margin-bottom:4px}
 .eq-group .toggle{color:var(--fg);min-height:36px;cursor:pointer}
+.bmap svg{width:100%;height:100%;display:block}
+.bmap .sil{fill:#2a2438;stroke:#4a4060;stroke-width:1.2}
+.bmap .mu{fill:#3d3550;stroke:var(--bg);stroke-width:1;transition:fill .3s,fill-opacity .3s}
+.bmap .mu.s{fill:var(--amber);fill-opacity:.4}
+.bmap .mu.p{fill:var(--amber);fill-opacity:1}
+.bmap .ln{fill:none;stroke:var(--bg);stroke-width:1.2}
+.bmap text{fill:var(--muted);font-family:var(--f-mono);font-size:17px;letter-spacing:.12em;text-transform:uppercase}
+.td-bmap{height:170px}
+.ex-bmap{display:flex;align-items:center;gap:14px;min-width:0}
+.ex-bmap .bmap{height:150px;aspect-ratio:400/434;flex:none}
+.ex-mus{margin:0;font-size:14px;color:var(--muted);min-width:0}
+.ex-mus b{color:var(--fg);font-weight:600}
+.gym-bmap{height:clamp(120px,22vh,200px)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{appearance:none;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--fg);font:inherit;font-size:13px;padding:6px 12px;min-height:36px;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--ink);font-weight:600}
@@ -302,6 +315,7 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
         <p class="eyebrow" id="tdDay">Today</p>
         <h2 class="today-focus" id="tdFocus">Upper body</h2>
         <p class="today-det" id="tdDet">Chest, shoulders, triceps and biceps</p>
+        <div class="bmap td-bmap" id="tdBody" hidden></div>
         <div class="setup-row"><label class="field">Setup <select id="equip"></select></label><button class="linkish" id="setupEdit" aria-expanded="false">Edit equipment</button></div>
         <div id="setupEd" class="setup-ed" hidden></div>
         <div class="setup-row"><label class="field">Focus <select id="tdFocusSel"></select></label><label class="field">Length <select id="tdDur"><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option></select></label></div>
@@ -372,6 +386,7 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
           <div class="next" id="segNext">Next: Climb</div>
         </div>
       </div>
+      <div class="ex-bmap" id="exMap" hidden><div class="bmap" id="exBody"></div><p class="ex-mus" id="exMus"></p></div>
       <div class="primary">
         <button class="play" id="play" aria-label="Play"><svg viewBox="0 0 16 16" id="playIcon"><path d="M3 1.5v13l11-6.5z"/></svg><span id="playLbl">Play</span></button>
         <button class="btn done-btn" id="doneBtn" hidden>Done</button>
@@ -449,6 +464,7 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
     <p class="eyebrow" id="gSetOf">Ready</p>
     <h2 id="gLabel">Press play</h2>
     <div class="gym-count" id="gCount">0:00</div>
+    <div class="bmap gym-bmap" id="gBody" hidden></div>
     <p class="gym-cue" id="gCue"></p>
     <div id="gLogSlot"></div>
   </div>
@@ -1015,6 +1031,79 @@ function genWorkout(cfg,seed){const F=FOCI[cfg.f],r=rng(hashStr(seed)),items=cur
   if(cd-ct>=10)blocks.push({t:'cool',name:'Breathe',d:cd-ct,e:.3,bpm:90});
   const genre=types.length===1?{strength:'hiphop',mobility:'chill',cardio:machine==='treadmill'||machine==='outdoor'?'dnb':machine==='walk'?'stroll':'house'}[types[0]]||'house':'house';
   return{id:'today',name:F.name+' · '+types.map(k=>TYPES[k].name).join(' + '),genre,today:true,blocks}}
+/* ---------- muscle map: front and back figures, drawn as the right half and mirrored ---------- */
+const BODY_SIL='<ellipse cx="100" cy="30" rx="16" ry="20"/><path d="M92 46h16l2 16H90z"/>'+
+  '<path d="M100 58c9 1 22 6 34 10c12 2 20 9 22 20c2 10 2 20 1 30c3 10 6 22 7 34c4 16 7 34 8 52c2 8 2 16-2 22c-5 3-8-2-9-8c-1-10-2-18-4-26c-5-14-8-28-10-42c-2-10-3-20-4-30c-3 14-6 30-7 46c3 10 7 20 9 30c2 22 2 46-3 68c-2 16-4 30-4 42c3 18 4 36 1 54c0 6 2 12 2 16c0 4-4 6-10 6h-10c-3 0-4-3-3-6c2-6 2-12 1-18c-4-16-6-34-4-52c-3-18-6-38-6-58c0-10-1-18-2-24z"/>';
+const BODY_M={
+  front:[['traps','M104 56c8 4 20 9 30 12c-7 3-16 4-24 2c-3-4-5-9-6-14z'],
+    ['delts','M136 70c10-1 18 6 19 17c1 8-1 15-5 19c-4-3-6-9-8-15c-2-8-4-14-6-21z'],
+    ['chest','M102 76c12-6 26-7 36-2c4 8 5 18 2 26c-5 8-16 11-27 10c-5-1-9-3-11-6z'],
+    ['biceps','M146 108c6-1 10 6 10 16c0 10-2 18-6 22c-4-4-6-12-6-21c0-7 0-13 2-17z'],
+    ['forearms','M150 150c7 2 12 12 14 24c2 12 2 24 1 32h-6c-3-10-6-22-8-34c-1-8-1-16-1-22z'],
+    ['abs','M102 114h14c3 14 3 30 2 46c-1 14-3 28-6 40h-10z'],
+    ['obliques','M120 114c8 3 14 10 15 20c0 18-4 38-11 56c-3 6-6 10-9 12c4-18 7-36 7-54c0-12-1-24-2-34z'],
+    ['quads','M108 228c10-6 22-6 30 2c3 22 1 46-5 68c-2 8-5 14-9 18c-6 0-11-4-13-10c-5-18-6-40-5-60c0-6 0-12 2-18z'],
+    ['adductors','M101 232c3-2 6-2 8 0c-2 20-1 42 3 62c-6-8-9-20-10-34c-1-10-1-20-1-28z'],
+    ['calves','M114 328c6-4 13-3 16 4c2 14 0 28-3 40c-1 4-3 6-6 6c-4 0-6-4-7-9c-2-13-2-27 0-41z']],
+  back:[['traps','M100 56c10 4 24 10 36 13c-8 8-18 18-26 32c-3 6-6 12-10 16z'],
+    ['delts','M136 70c10-1 18 6 19 17c1 8-1 15-5 19c-4-3-6-9-8-15c-2-8-4-14-6-21z'],
+    ['upperback','M112 100c8-12 16-22 26-28c3 8 3 18 0 26c-5 6-12 10-20 12c-3-2-5-6-6-10z'],
+    ['triceps','M146 106c7-1 11 7 11 18c0 10-3 18-7 22c-4-4-6-12-7-21c-1-8 0-14 3-19z'],
+    ['forearms','M150 150c7 2 12 12 14 24c2 12 2 24 1 32h-6c-3-10-6-22-8-34c-1-8-1-16-1-22z'],
+    ['lats','M120 114c8-6 14-12 20-14c1 16-2 34-8 50c-4 10-10 20-16 26c-4-6-6-14-6-22c2-14 5-28 10-40z'],
+    ['lowerback','M101 122h8c4 22 5 46 3 72c-4 2-8 3-11 3z'],
+    ['glutes','M101 208c12-6 28-5 37 4c4 14 2 30-6 38c-8 6-20 6-28 0c-2-12-3-28-3-42z'],
+    ['hamstrings','M106 262c9-4 22-3 30 2c2 18-1 36-7 50c-3 4-8 6-12 4c-6-14-10-34-11-56z'],
+    ['calves','M112 326c7-6 16-5 20 2c3 14 1 28-4 40c-3 6-9 7-13 2c-4-12-5-28-3-44z']]};
+const MUS_NAME={chest:'Chest',delts:'Shoulders',biceps:'Biceps',triceps:'Triceps',forearms:'Forearms',abs:'Abs',obliques:'Obliques',quads:'Quads',adductors:'Inner thighs',calves:'Calves',
+  traps:'Traps',upperback:'Upper back',lats:'Lats',lowerback:'Lower back',glutes:'Glutes',hamstrings:'Hamstrings'};
+function bodySVG(label){const fig=(side,x)=>{const m=BODY_M[side].map(([id,d])=>'<path class="mu" data-m="'+id+'" d="'+d+'"/>').join(''),half='<g class="sil">'+BODY_SIL+'</g>'+m+(side==='front'?'<path class="ln" d="M102 136h14M102 158h14M102 180h12"/>':'');
+    return '<g transform="translate('+x+' 0)"><g>'+half+'</g><g transform="translate(200 0) scale(-1 1)">'+half+'</g><text x="100" y="428" text-anchor="middle">'+(side==='front'?'Front':'Back')+'</text></g>'};
+  return '<svg viewBox="0 0 400 434" role="img" aria-label="'+label+'">'+fig('front',0)+fig('back',200)+'</svg>'}
+/* paint primary and secondary muscles; returns false when there is nothing to show */
+function paintBody(box,m){const p=new Set(m?m.p:[]),s=new Set(m?m.s:[]);box.querySelectorAll('.mu').forEach(el=>{const k=el.dataset.m;el.classList.toggle('p',p.has(k));el.classList.toggle('s',!p.has(k)&&s.has(k))});
+  const svg=box.querySelector('svg');if(svg)svg.setAttribute('aria-label',m&&m.p.length?'Muscles worked: '+[...p].map(k=>MUS_NAME[k]).join(', '):'Muscle map');return !!(m&&m.p.length)}
+/* which muscles a move works: first matching rule wins; [pattern, primary, secondary] */
+const MUS_RULES=[
+  [/^(foam roll|stretch) · quads/i,['quads']],[/^(foam roll|stretch) · hamstrings/i,['hamstrings']],[/^(foam roll|stretch) · glutes/i,['glutes']],[/^(foam roll|stretch) · calves/i,['calves']],
+  [/^(foam roll|stretch) · upper back/i,['upperback','traps']],[/^(foam roll|stretch) · lats/i,['lats']],[/^stretch · chest/i,['chest'],['delts']],[/^stretch · shoulders/i,['delts']],
+  [/^stretch · triceps/i,['triceps']],[/^stretch · hip flexors/i,['quads'],['abs']],
+  [/cat-cow/i,['lowerback','abs']],[/world's greatest/i,['hamstrings','quads'],['adductors','upperback']],[/90\/90/i,['glutes','adductors']],[/thoracic|thread the needle/i,['upperback'],['obliques']],
+  [/dislocate|arm circles|wall slides/i,['delts'],['upperback']],[/deep squat hold/i,['quads','glutes'],['adductors']],[/downward dog/i,['hamstrings','calves'],['abs','delts']],
+  [/ankle rocks/i,['calves']],[/scorpion|spinal twist/i,['lowerback','obliques']],[/leg swings/i,['hamstrings','quads'],['glutes']],[/child's pose/i,['lats','lowerback']],
+  [/^cobra/i,['abs'],['lowerback']],[/dead hang/i,['lats','forearms']],
+  [/treadmill|run outside|walk outside|stair climber/i,['quads','calves','glutes'],['hamstrings']],[/^bike/i,['quads'],['glutes','calves','hamstrings']],
+  [/rower/i,['lats','quads','upperback'],['hamstrings','biceps','glutes']],[/elliptical/i,['quads','glutes'],['delts','calves']],
+  [/lunge with rotation/i,['quads','glutes','obliques'],['abs']],[/chest pass sprint/i,['chest','quads','calves'],['delts','glutes']],[/superman to plank/i,['lowerback','abs'],['glutes','delts']],
+  [/calf raise/i,['calves']],[/back extension|superman/i,['lowerback'],['glutes','hamstrings']],[/leg extension/i,['quads']],[/hamstring curl/i,['hamstrings'],['calves']],
+  [/romanian|good morning|single-leg (kettlebell )?deadlift/i,['hamstrings','glutes'],['lowerback']],[/sumo deadlift/i,['glutes','quads','hamstrings'],['adductors','lowerback']],
+  [/deadlift/i,['hamstrings','glutes','lowerback'],['quads','traps','forearms']],[/hip thrust|glute bridge/i,['glutes'],['hamstrings']],[/monster walk/i,['glutes'],['quads']],
+  [/kettlebell swing|snatch/i,['glutes','hamstrings'],['lowerback','delts']],[/turkish get-up/i,['delts','abs'],['glutes','quads','obliques']],
+  [/clean and press|man-maker|thruster|to press|wall ball/i,['quads','glutes','delts'],['triceps','abs']],[/farmer/i,['forearms','traps'],['abs','glutes']],
+  [/slam/i,['lats','abs'],['delts','glutes']],[/overhead throw/i,['delts','abs'],['lats']],[/push-pull/i,['chest','upperback'],['delts']],
+  [/rotational|woodchop|windmill|russian twist|bicycle|pallof|with rotation/i,['obliques'],['abs']],
+  [/pull-up|chin-up|pulldown/i,['lats'],['biceps','upperback','forearms']],[/face pull|pull-apart|rear-delt|y-raise|power pull/i,['delts','upperback'],['traps']],
+  [/upright row|high pull/i,['delts','traps'],['biceps']],[/renegade/i,['lats','upperback','abs'],['delts','triceps']],[/squat to row/i,['quads','upperback','lats'],['glutes','biceps']],
+  [/row/i,['lats','upperback'],['biceps','delts']],[/curl/i,['biceps'],['forearms']],[/pullover/i,['lats','chest'],['triceps']],
+  [/dips|pushdown|skull|kickback|triceps extension|overhead (dumbbell|kettlebell) extension|close-grip|diamond/i,['triceps'],['chest','delts']],
+  [/lateral raise|front raise|halo/i,['delts'],['traps']],[/overhead press|shoulder press|arnold|push press|pike push|band overhead/i,['delts'],['triceps','traps']],
+  [/atomic|plank to push-up|inchworm/i,['chest','abs'],['delts','triceps']],[/bench press|chest press|push-up|flye|incline|chest pass/i,['chest'],['delts','triceps']],
+  [/burpee|squat thrust/i,['quads','chest'],['delts','abs','glutes']],[/bear crawl|crab walk/i,['delts','abs'],['quads','triceps']],
+  [/mountain climber|plank jack|shoulder tap/i,['abs'],['delts','quads']],[/plank|dead bug|crunch|leg raise|pike|body saw|ab wheel/i,['abs'],['obliques']],
+  [/lunge|split squat|step-up|pistol/i,['quads','glutes'],['hamstrings','adductors']],[/squat|leg press/i,['quads','glutes'],['hamstrings','adductors']],
+  [/skipping|jumping jacks|step jacks/i,['calves'],['quads','delts']],[/shadow boxing/i,['delts'],['abs','biceps']],[/march/i,['quads'],['calves']],
+  [/shuttle|t-drill|zig-zag|cone|box drill|backpedal|sprint|carioca|shuffle|skater|hop|quick feet|tuck jump|broad jump|high knees|butt kick/i,['quads','calves','glutes'],['hamstrings','adductors']]];
+const GROUP_MUS={chest:[['chest'],['delts','triceps']],shoulders:[['delts'],['triceps','traps']],triceps:[['triceps'],['chest','delts']],biceps:[['biceps'],['forearms']],
+  back:[['lats','upperback'],['biceps','delts']],legs:[['quads','glutes'],['hamstrings','adductors']],posterior:[['hamstrings','glutes'],['lowerback']],core:[['abs'],['obliques']]};
+function musclesFor(name){if(!name)return null;for(const [re,p,s] of MUS_RULES)if(re.test(name))return{p,s:s||[]};
+  for(const g in LIB)if(LIB[g].some(e=>e[0]===name))return{p:GROUP_MUS[g][0],s:GROUP_MUS[g][1]};return null}
+function musclesOf(blocks){const p=new Set(),s=new Set();blocks.forEach(b=>{if(b.t==='warm'||b.t==='cool'||b.t==='rest')return;const m=musclesFor(b.name);if(m){m.p.forEach(k=>p.add(k));m.s.forEach(k=>s.add(k))}});
+  return{p:[...p],s:[...s].filter(k=>!p.has(k))}}
+/* Play tab and Gym mode: the current move, or during a rest the move coming up */
+function showMuscles(box,seg,next){const rest=seg&&(seg.kind==='rest'||/^(Rest|Recover|Set up next|Next up)/.test(seg.label)),t=rest?next:seg,name=t?t.ex||t.label:'';
+  if(box._k===name)return box._on;box._k=name;const m=musclesFor(name);box._on=paintBody(box,m);box._m=m;return box._on}
+function musLine(m){return m?'Works <b>'+m.p.map(k=>MUS_NAME[k]).join(', ')+'</b>'+(m.s.length?' · also '+m.s.map(k=>MUS_NAME[k].toLowerCase()).join(', '):''):''}
+function initBody(){['tdBody','exBody','gBody'].forEach(id=>{$(id).innerHTML=bodySVG('Muscle map')})}
 function todayInfo(){const d=new Date(),dow=d.getDay(),key=d.toDateString(),ov=!!tov&&tov.date===key,cfg={...(ov?tov:week[dow]),dur:SET.dur};return{d,dow,key,cfg,ov,F:FOCI[cfg.f]}}
 function loadWeek(){try{const w=JSON.parse(localStorage.getItem('pacemix-week')||'null');if(w)for(let d=0;d<7;d++)if(w[d]!=null)week[d]=normDay(w[d]);
   const sh=JSON.parse(localStorage.getItem('pacemix-shuffle')||'null');if(sh)shuf=sh;
@@ -1033,9 +1122,10 @@ function renderToday(){const {dow,key,cfg,ov,F}=todayInfo(),items=curSetup().ite
   if(cOn){const opts=cardioOpts(items),ms=$('tdMach');$('tdCs').value=cfg.cs||(cfg.types.length===1?'steady':'int');
     ms.innerHTML='<option value="any">Any available</option>'+opts.map(k=>'<option value="'+k+'">'+CARDIO[k][0]+'</option>').join('');ms.value=cfg.m&&opts.includes(cfg.m)?cfg.m:'any'}
   ['tdList','tdGo','tdShuffle','tdCustom'].forEach(id=>{$(id).hidden=rest});
-  if(rest){todayW=null;$('tdDet').textContent=F.det+' Pick a training type to work out anyway.';return}
+  if(rest){todayW=null;$('tdBody').hidden=true;$('tdDet').textContent=F.det+' Pick a training type to work out anyway.';return}
   const n=shuf.date===key?shuf.n:0;todayW=genWorkout(cfg,[key,cfg.f,cfg.types.join('+'),cfg.cs||'',cfg.m||'',cfg.dur,[...items].sort().join(','),n].join('|'));
   $('tdDet').textContent=F.det+' · '+curSetup().name+' · '+Math.round(wTotal(todayW)/60)+' min';$('tdGo').textContent="Load today's workout";
+  const tm=musclesOf(todayW.blocks);$('tdBody').hidden=!paintBody($('tdBody'),tm);
   /* one row per exercise under a heading per type; cardio collapses to one row */
   const tl=$('tdList');tl.innerHTML='';let ty=null,row=null;
   todayW.blocks.forEach(b=>{if(!b.ty||b.t==='rest')return;
@@ -1145,10 +1235,10 @@ function stepLog(k){const inp=k[0]==='w'?$('logW'):$('logR'),st=k[0]==='w'?(SET.
 function openGym(){$('gym').hidden=false;$('gLogSlot').appendChild($('logPanel'));try{document.documentElement.requestFullscreen?.().catch(()=>{})}catch(e){}updateGym();$('gDone').focus()}
 function closeGym(){$('gym').hidden=true;$('logHome').appendChild($('logPanel'));try{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}catch(e){}}
 function updateGym(){if($('gym').hidden)return;const st=S.state,el=curPos();$('gStation').textContent=cur.name;$('gClock').textContent=el>=0?fmt(el)+' / '+fmt(plan.total):fmt(plan.total);
-  if(el>=0&&el<plan.total){const p=planAt(el),nx=plan.segs[p.idx+1];$('gLabel').textContent=p.seg.ex||p.seg.label;$('gSetOf').textContent=p.seg.ex&&p.seg.sets>1?'Set '+p.seg.setNo+' of '+p.seg.sets:p.seg.kind==='rest'?'Rest':'Now';
+  if(el>=0&&el<plan.total){const p=planAt(el),nx=plan.segs[p.idx+1];$('gBody').hidden=!showMuscles($('gBody'),p.seg,nx);$('gLabel').textContent=p.seg.ex||p.seg.label;$('gSetOf').textContent=p.seg.ex&&p.seg.sets>1?'Set '+p.seg.setNo+' of '+p.seg.sets:p.seg.kind==='rest'?'Rest':'Now';
     $('gCount').textContent=$('segCount').textContent;$('gCount').classList.toggle('over',$('segCount').classList.contains('over'));$('gCue').textContent=$('cueText').textContent;
     $('gNext').textContent=nx?'Next: '+(nx.ex?nx.ex+(nx.sets>1?' '+nx.setNo+'/'+nx.sets:''):nx.label)+' · '+fmt(nx.t1-nx.t0):'Last part';$('gDone').textContent=st==='paused'?'Resume':doneLabel(p)}
-  else{$('gLabel').textContent=st==='done'?'Workout done':cur.name;$('gSetOf').textContent=st==='done'?'Nice work':'Ready';$('gCount').textContent=fmt(plan.total);$('gCount').classList.remove('over');$('gCue').textContent=st==='done'?'Your session is saved to your progress.':'Press Start when you are ready.';$('gNext').textContent='';$('gDone').textContent=st==='done'?'Start again':'Start workout'}
+  else{$('gBody').hidden=true;$('gLabel').textContent=st==='done'?'Workout done':cur.name;$('gSetOf').textContent=st==='done'?'Nice work':'Ready';$('gCount').textContent=fmt(plan.total);$('gCount').classList.remove('over');$('gCue').textContent=st==='done'?'Your session is saved to your progress.':'Press Start when you are ready.';$('gNext').textContent='';$('gDone').textContent=st==='done'?'Start again':'Start workout'}
   $('gPause').textContent=st==='playing'?'Pause':'Resume';$('gPause').hidden=!(st==='playing'||st==='paused');$('gSkip').textContent=mode==='songs'?'Next song':'Next mix'}
 
 /* per-frame training logic, called from loop() while playing */
@@ -1251,6 +1341,7 @@ function resetView(){renderPlanList();markPlan(-1);const p=planAt(0);$('stName')
 function showSeg(el){const p=planAt(el),next=plan.segs[p.idx+1];
   $('segLabel').textContent=p.seg.label;$('segCount').textContent=fmt(p.seg.t1-el);
   $('segNext').textContent=next?'Next: '+next.label:'Final segment';
+  const mb=$('exBody'),k=mb._k;$('exMap').hidden=!showMuscles(mb,p.seg,next);if(mb._k!==k)$('exMus').innerHTML=musLine(mb._m);
   $('segBox').classList.toggle('peak',p.seg.e0>=.9);$('clock').textContent=fmt(el)+' / '+fmt(plan.total);return p}
 
 /* timeline */
@@ -1325,7 +1416,7 @@ $('back15').onclick=()=>{if(S.cur)seekTo(S.cur.el.currentTime-15)};
 $('fwd15').onclick=()=>{if(S.cur)seekTo(S.cur.el.currentTime+15)};
 $('tmatch').onchange=e=>{tempoMode=e.target.value;try{localStorage.setItem('pacemix-tmatch',tempoMode)}catch(err){}};
 renderSongs();dbLoad().then(list=>{list=list.filter(x=>x&&x.blob);songs=list.concat(songs.filter(s=>!list.some(x=>x.id===s.id))).sort((a,b)=>(a.added||0)-(b.added||0));renderSongs();if(S.state==='idle')resetView()});
-loadCustoms();initBuilder();initTraining();initShell();initBackup();
+initBody();loadCustoms();initBuilder();initTraining();initShell();initBackup();
 readCols();buildPlan();renderStations();$('len').value=String(cur.len);resetView();setPlay();initToday();
 new ResizeObserver(()=>drawTL(S.state==='playing'||S.state==='paused'?ctx.currentTime-S.t0:0)).observe($('tl'));
 requestAnimationFrame(loop);
