@@ -220,6 +220,32 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
 #recent li b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #recent li span{color:var(--muted);font-family:var(--f-mono);font-size:11px}
 #recent li em{grid-column:1/-1;font-style:normal;color:var(--muted);font-size:12px}
+.td-ex{appearance:none;background:none;border:0;color:inherit;font:inherit;padding:0;display:flex;align-items:center;gap:6px;min-width:0;cursor:pointer;text-align:left}
+.td-ex svg{width:15px;height:15px;flex:none;fill:none;stroke:var(--amber);stroke-width:1.6;stroke-linejoin:round}
+.td-ex:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px}
+.td-hint{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.ex-txt{display:grid;gap:8px;justify-items:start;min-width:0}
+.gym-how{align-self:center}
+.demo{position:fixed;inset:0;z-index:70;background:rgba(8,6,12,.72);display:flex;align-items:flex-end;justify-content:center}
+.demo[hidden]{display:none}
+.demo-card{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:92vh;overflow:auto;display:grid;gap:12px;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) max(18px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+@media (min-width:700px){.demo{align-items:center}.demo-card{border-radius:18px;border-bottom:1px solid var(--line)}}
+.demo-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#dmName{font-family:var(--f-display);font-weight:900;font-size:28px;line-height:1;text-transform:uppercase;margin:0;min-width:0;text-wrap:balance}
+.demo-fig{background:var(--bg);border-radius:12px;aspect-ratio:160/136;width:100%;max-height:44vh}
+.demo-fig svg{width:100%;height:100%;display:block}
+.demo-fig .gnd{stroke:var(--line);stroke-width:1.5}
+.demo-fig .lm,.demo-fig .tor{fill:none;stroke:var(--fg);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.demo-fig .tor{stroke-width:7}
+.demo-fig .hd{fill:var(--fg)}
+.demo-fig .far .lm{stroke:var(--muted);opacity:.6}
+.demo-fig .kit{fill:none;stroke:#6b6080;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.demo-fig .held{fill:var(--amber)}
+.demo-fig .far .held{opacity:.6}
+.demo-fig .strap{fill:none;stroke:var(--amber);stroke-width:1.2}
+.demo-tips{margin:0;padding-left:20px;display:grid;gap:6px;font-size:15px;line-height:1.4}
+.demo-vid{text-decoration:none;justify-self:start}
 .gym{position:fixed;inset:0;z-index:60;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;gap:14px;overflow:auto;
   padding-top:max(14px,env(safe-area-inset-top,0px));padding-bottom:max(16px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .gym-top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--f-mono);font-size:13px;color:var(--muted)}
@@ -324,6 +350,7 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
         <p class="bk-note" id="tdOv" hidden>Changed for today only. <button class="linkish" id="tdReset">Back to my week plan</button></p>
         <div class="today-acts"><button class="play small" id="tdGo">Load today's workout</button><button class="btn" id="tdShuffle">Shuffle</button><button class="btn" id="tdCustom">Customize</button></div>
         <ol class="td-list" id="tdList"></ol>
+        <p class="td-hint" id="tdHint">Tap an exercise to see how to do it.</p>
         <button class="linkish" id="tdWeek" aria-expanded="false">Edit my week</button>
         <div id="weekEd" class="week" hidden></div>
       </section>
@@ -386,7 +413,7 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
           <div class="next" id="segNext">Next: Climb</div>
         </div>
       </div>
-      <div class="ex-bmap" id="exMap" hidden><div class="bmap" id="exBody"></div><p class="ex-mus" id="exMus"></p></div>
+      <div class="ex-bmap" id="exMap" hidden><div class="bmap" id="exBody"></div><div class="ex-txt"><p class="ex-mus" id="exMus"></p><button class="btn" id="exHow" type="button">How to do it</button></div></div>
       <div class="primary">
         <button class="play" id="play" aria-label="Play"><svg viewBox="0 0 16 16" id="playIcon"><path d="M3 1.5v13l11-6.5z"/></svg><span id="playLbl">Play</span></button>
         <button class="btn done-btn" id="doneBtn" hidden>Done</button>
@@ -465,11 +492,21 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
     <h2 id="gLabel">Press play</h2>
     <div class="gym-count" id="gCount">0:00</div>
     <div class="bmap gym-bmap" id="gBody" hidden></div>
+    <button class="btn gym-how" id="gHow" type="button" hidden>How to do it</button>
     <p class="gym-cue" id="gCue"></p>
     <div id="gLogSlot"></div>
   </div>
   <button class="gym-done" id="gDone">Play</button>
   <div class="gym-bottom"><button class="btn" id="gPause">Pause</button><span id="gNext"></span><button class="btn" id="gSkip">Next song</button></div>
+</div>
+<div class="demo" id="demo" hidden role="dialog" aria-modal="true" aria-labelledby="dmName">
+  <div class="demo-card">
+    <div class="demo-top"><h2 id="dmName">Exercise</h2><button class="btn" id="dmClose" type="button">Close</button></div>
+    <div class="demo-fig" id="dmFig"></div>
+    <p class="ex-mus" id="dmMus"></p>
+    <ol class="demo-tips" id="dmTips"></ol>
+    <a class="btn demo-vid" id="dmVid" target="_blank" rel="noopener">&#9654; Watch a video</a>
+  </div>
 </div>
 
 <script>
@@ -1104,6 +1141,282 @@ function showMuscles(box,seg,next){const rest=seg&&(seg.kind==='rest'||/^(Rest|R
   if(box._k===name)return box._on;box._k=name;const m=musclesFor(name);box._on=paintBody(box,m);box._m=m;return box._on}
 function musLine(m){return m?'Works <b>'+m.p.map(k=>MUS_NAME[k]).join(', ')+'</b>'+(m.s.length?' · also '+m.s.map(k=>MUS_NAME[k].toLowerCase()).join(', '):''):''}
 function initBody(){['tdBody','exBody','gBody'].forEach(id=>{$(id).innerHTML=bodySVG('Muscle map')})}
+/* ---------- exercise demos: a looping side-view figure, form tips and a video link ---------- */
+/* a pose: p hip point, t torso lean from upright (+ = forward), c spine curve (+ = rounded), hd head tilt,
+   F feet, H hands (absolute) or Hr hands relative to the shoulder, k knee bend (1 = forward), e elbow bend (-1 = back).
+   Each key inherits what it leaves out from the key before it. */
+const DG=114,DR=Math.PI/180;
+const DST={p:[70,66],t:0,c:0,hd:0,F:[[73,114],[67,114]],Hr:[[2,31],[-2,31]],k:1,e:-1};
+/* a straight body pivoting at the feet: angle from upright, + = leaning toward the hands */
+const bod=(f,a)=>({p:[f[0]+48*Math.sin(a*DR),f[1]-48*Math.cos(a*DR)],t:a});
+const circ=(n,f)=>Array.from({length:n},(_,i)=>f(i/n*2*Math.PI));
+const SQ_T={Hr:[[11,8],[9,8]]},SQ_B={p:[54,90],t:38};
+const PU_U={...bod([24,112],66.6),F:[[24,112],[22,112]],H:[[98,114],[94,114]],hd:-8},PU_D=bod([24,112],81);
+const DPL={...bod([15,112],79.7),F:[[15,112],[13,112]],H:[[106,113],[104,113]],hd:-6};
+const HANG={p:[76,59],t:0,F:[[74,106],[70,106]],H:[[78,-4],[74,-4]]},BAR={b:'bar',x:56,w:44,y:-4};
+const LIE={p:[60,107],t:90,F:[[36,114],[32,114]],k:-1};
+const ROW_B={p:[58,70],t:62,Hr:[[0,31],[-2,31]]},ROW_T={Hr:[[-20,12],[-22,12]]};
+const FOURS={p:[60,89],t:78.7,F:[[36,113],[34,113]],H:[[92,114],[90,114]],k:1};
+const RUN=(f,hi,arm)=>[{p:[70,64],t:8,F:[[84,f],[58,112]],Hr:[[-12,24],[arm,14]]},{F:[[58,112],[84,f]],Hr:[[arm,14],[-12,24]]}];
+const HOP0={p:[66,74],t:22,F:[[76,114],[62,114]],Hr:[[14,18],[10,20]]};
+const DMO={
+  squat:{d:2.6,k:[{...DST,...SQ_T},SQ_B],hold:'mid',tips:['Feet shoulder-width, toes turned out a little','Sit your hips back and down, chest up','Knees track over your toes; push through your whole foot to stand']},
+  squatbb:{d:2.8,k:[{...DST,Hr:[[-4,3],[-6,3]]},SQ_B],hold:'sh',tips:['Bar across your upper back, not your neck','Brace your core, then sit down between your heels','Drive up through your whole foot, chest leading']},
+  jumpsq:{d:1.5,k:[{...SQ_B,F:DST.F,Hr:[[-8,26],[-10,26]],k:1,e:-1,c:0,hd:0},{p:[70,52],t:0,F:[[73,102],[67,102]],Hr:[[20,-14],[18,-14]]},{p:[70,66],F:DST.F,Hr:[[6,20],[4,20]]}],tips:['Squat to about parallel, arms back','Explode up and swing your arms','Land softly on the balls of your feet and sink straight into the next one']},
+  deepsq:{d:4,k:[{...DST,...SQ_B,p:[56,96],Hr:[[14,4],[12,4]]},{p:[56,94]}],tips:['Sink as low as you comfortably can, heels down','Elbows push your knees gently apart','Breathe slowly and stay tall through your chest']},
+  pistol:{d:3,k:[{...DST,F:[[73,114],[96,104]],Hr:[[30,4],[28,4]]},{p:[56,92],t:36,F:[[73,114],[110,96]]}],hold:'none',tips:['Hold the straps or reach your arms forward for balance','Lower slowly on one leg, other leg straight out in front','Keep the standing heel down and knee over toes']},
+  lunge:{d:2.6,k:[{...DST,p:[68,72],F:[[86,114],[50,114]]},{p:[67,93]}],tips:['Long step; both knees bend to about 90°','Front knee stays over the ankle','Back knee drops toward the floor; push through the front heel']},
+  lungepress:{d:3,k:[{...DST,p:[68,72],F:[[86,114],[50,114]],Hr:[[2,-33],[0,-33]],e:1},{p:[67,93],Hr:[[7,-1],[5,-1]],e:-1}],tips:['Step back into a lunge with the weights at your shoulders','Push back up to standing','Press overhead as you rise, ribs down']},
+  lungerot:{d:3,k:[{...DST,p:[68,72],F:[[86,114],[50,114]],Hr:[[16,10],[14,10]]},{p:[67,93],Hr:[[6,16],[24,4]]}],tips:['Step into a lunge with arms out in front','Rotate your chest over the front leg','Turn back to centre and push up to stand']},
+  jumplunge:{d:1.8,k:[{...DST,p:[67,93],F:[[86,114],[50,114]],Hr:[[-10,24],[12,16]]},{p:[68,62],F:[[78,104],[60,104]]},{p:[67,93],F:[[50,114],[86,114]],Hr:[[12,16],[-10,24]]},{p:[68,62],F:[[60,104],[78,104]]}],tips:['Start low in a lunge','Jump and switch legs in the air','Land softly straight into the next lunge']},
+  split:{d:2.8,k:[{...DST,p:[70,74],F:[[86,114],[40,94]]},{p:[68,94]}],pr:[{b:'bench',x:16,w:30,y:96}],tips:['Back foot laces-down on the bench','Drop straight down; most weight on the front leg','Front knee stays in line with your toes']},
+  stepup:{d:3.2,k:[{...DST,p:[66,72],t:8,F:[[92,92],[62,114]]},{p:[84,52],t:4,F:[[93,92],[78,94]]},{p:[92,46],t:0,F:[[94,92],[88,92]]},{p:[84,52],t:4,F:[[93,92],[78,94]]}],pr:[{b:'box',x:80,w:28,y:92}],tips:['Whole foot on the step','Drive up through the front heel, not by pushing off the back foot','Step down slowly with control']},
+  hinge:{d:2.8,k:[{...DST},{p:[56,70],t:78,Hr:[[0,31],[-2,31]]}],tips:['Soft knees, then push your hips back','Keep your back flat and the weight close to your legs','Stand tall by squeezing your glutes']},
+  deadlift:{d:3,k:[{...DST},{p:[54,84],t:60,Hr:[[0,33],[-2,33]]}],tips:['Feet hip-width, bar over the middle of your feet','Flat back, chest up, brace before you lift','Push the floor away and lock out with your glutes']},
+  goodmorn:{d:3,k:[{...DST,Hr:[[-4,3],[-6,3]]},{p:[56,70],t:78}],hold:'sh',tips:['Weight on your upper back, knees soft','Hinge at the hips until your back is near level','Flat back the whole way; squeeze glutes to stand']},
+  sldl:{d:3.2,k:[{...DST,F:[[73,114],[62,108]]},{p:[60,68],t:80,F:[[73,114],[10,72]],Hr:[[0,31],[-2,31]]}],tips:['Balance on one leg with a soft knee','Hinge forward as the other leg reaches back','Hips stay square to the floor; stand up slowly']},
+  swing:{d:1.4,k:[{...DST,p:[56,72],t:70,Hr:[[-10,26],[-12,26]]},{p:[70,66],t:-4,Hr:[[32,2],[30,2]]}],hold:'mid',tips:['Hike the bell back between your legs','Snap your hips forward; the arms just guide it','Bell floats to chest height, back flat throughout']},
+  snatch:{d:1.6,k:[{...DST,p:[56,72],t:70,Hr:[[-10,26],[-12,26]]},{p:[70,66],t:0,Hr:[[4,-32],[-2,30]],e:1}],tips:['Swing the bell back between your legs','Drive the hips and pull it close to your body','Punch up to lock out overhead; lower with control']},
+  highpull:{d:2,k:[{...DST,p:[54,84],t:60,Hr:[[0,33],[-2,33]]},{p:[70,66],t:0,Hr:[[8,-2],[6,-2]],e:1}],hold:'mid',tips:['Start in a hinge, weight between your feet','Drive with your hips and pull the weight to chest height','Elbows lead, high and wide']},
+  pushup:{d:2.4,k:[PU_U,PU_D],tips:['Hands under your shoulders, body in one straight line','Lower your chest toward the floor, elbows about 45°','Push the floor away; don\'t let your hips sag']},
+  pikepu:{d:2.6,k:[{p:[60,68],t:120,F:[[40,114],[38,114]],H:[[96,114],[94,114]],k:1,e:-1,hd:20},{p:[64,76],t:110}],tips:['Hips high in an upside-down V','Bend your elbows and lower the top of your head toward the floor','Press back up through your shoulders']},
+  mclimb:{d:.7,k:[{...PU_U,F:[[62,106],[22,112]]},{F:[[22,112],[62,106]]}],tips:['Start in a high plank, hands under shoulders','Drive one knee toward your chest, then switch fast','Keep your hips low and level']},
+  plank:{d:4,k:[DPL,bod([15,112],78.6)],tips:['Elbows under your shoulders','Squeeze glutes and brace your belly','Straight line from head to heels; breathe']},
+  taps:{d:2.4,k:[PU_U,{H:[[96,90],[94,114]]},{H:[[98,114],[94,114]]},{H:[[98,114],[96,90]]}],tips:['High plank, feet a little wider for balance','Tap the opposite shoulder with one hand','Keep your hips still; don\'t rock side to side']},
+  renegade:{d:2.6,k:[PU_U,{H:[[76,100],[94,114]]},{H:[[98,114],[94,114]]},{H:[[98,114],[74,100]]}],tips:['High plank on the dumbbells, feet wide','Row one weight to your hip','Keep your hips square, then switch']},
+  pl2pu:{d:3,k:[{...bod([24,112],80),F:[[24,112],[22,112]],H:[[114,113],[112,113]]},{...bod([24,112],66.6),H:[[98,114],[96,114]]}],tips:['Start on your forearms','Push up one hand at a time into a high plank','Lower back down one arm at a time; hips stay still']},
+  inchworm:{d:6,k:[{...DST,F:[[72,114],[68,112]]},{p:[64,68],t:120,H:[[96,114],[94,114]]},{...bod([70,112],66.6),H:[[144,114],[142,114]],hd:-8},{...bod([70,112],81)},{...bod([70,112],66.6)},{p:[64,68],t:120,H:[[96,114],[94,114]],hd:0}],tips:['Fold forward and put your hands on the floor','Walk your hands out to a plank and do a push-up','Walk the hands back and roll up to stand']},
+  atomic:{d:3,k:[PU_U,PU_D,PU_U,{p:[68,86],t:76,F:[[62,104],[60,104]]}],ta:'feet',tips:['Feet in the straps, high plank','Do a push-up, then tuck your knees to your chest','Body stays tight; don\'t let the hips drop']},
+  bench:{d:2.6,k:[{p:[48,90],t:90,F:[[34,114],[30,114]],k:-1,H:[[78,57],[76,57]],e:1},{H:[[80,78],[78,78]]}],pr:[{b:'bench',x:24,w:72,y:96}],tips:['Feet flat, shoulder blades pinched together','Lower the weight to the middle of your chest','Press up and slightly back over your shoulders']},
+  fly:{d:3,k:[{p:[48,90],t:90,F:[[34,114],[30,114]],k:-1,H:[[78,57],[76,57]],e:1},{H:[[64,72],[62,72]]}],pr:[{b:'bench',x:24,w:72,y:96}],tips:['Slight bend in the elbows the whole time','Open your arms in a wide arc until you feel a chest stretch','Hug the weights back together over your chest']},
+  skull:{d:2.6,k:[{p:[48,90],t:90,F:[[34,114],[30,114]],k:-1,H:[[78,57],[76,57]],e:1},{H:[[94,74],[92,74]]}],pr:[{b:'bench',x:24,w:72,y:96}],tips:['Arms straight up over your shoulders','Bend only at the elbows to lower toward your forehead','Elbows stay pointing up; extend back to start']},
+  pullover:{d:3,k:[{p:[48,90],t:90,F:[[34,114],[30,114]],k:-1,H:[[78,57],[76,57]],e:1},{H:[[110,82],[108,82]]}],hold:'mid',pr:[{b:'bench',x:24,w:72,y:96}],tips:['Hold the weight over your chest, elbows soft','Lower it back behind your head in an arc','Pull it back over your chest using your lats']},
+  thrust:{d:2.4,k:[{p:[70,104],t:70,F:[[46,114],[42,114]],k:-1,Hr:[[-6,8],[-8,8]]},{p:[70,88],t:96}],hold:'hip',pr:[{b:'bench',x:92,w:44,y:96}],tips:['Upper back on the bench, feet flat','Drive your hips up until knees, hips and shoulders line up','Squeeze your glutes at the top, chin tucked']},
+  bridge:{d:2.4,k:[{p:[70,107],t:90,F:[[46,114],[42,114]],k:-1,H:[[86,113],[84,113]]},{p:[70,91],t:120}],hold:'hip',tips:['Lie on your back, feet flat near your hips','Push through your heels and lift your hips','Squeeze your glutes at the top, ribs down']},
+  bridge1:{d:2.4,k:[{p:[70,107],t:90,F:[[46,114],[36,70]],k:-1,H:[[86,113],[84,113]]},{p:[70,91],t:120,F:[[46,114],[30,60]]}],tips:['One foot planted, other leg straight up','Drive through the planted heel to lift your hips','Keep your hips level; don\'t let one side drop']},
+  press:{d:2.4,k:[{...DST,Hr:[[7,-1],[5,-1]]},{Hr:[[2,-33],[0,-33]],e:1}],tips:['Weights at your shoulders, core braced','Press straight up until your arms lock out','Don\'t lean back; lower with control']},
+  pushpress:{d:2,k:[{...DST,Hr:[[7,-1],[5,-1]]},{p:[68,72],t:2},{p:[70,66],t:0,Hr:[[2,-33],[0,-33]],e:1}],tips:['Weight at your shoulder','Quick dip at the knees, then drive up with your legs','Use that drive to press overhead and lock out']},
+  halo:{d:2.4,lin:1,k:circ(8,a=>({...DST,Hr:[[2+11*Math.cos(a),-14+5*Math.sin(a)],[0+11*Math.cos(a),-14+5*Math.sin(a)]],e:1})),hold:'mid',tips:['Hold the bell upside down by the horns','Circle it slowly around your head, close to your neck','Keep your ribs down and change direction each set']},
+  raise:{d:2.6,k:[{...DST},{Hr:[[32,0],[30,0]]}],tips:['Light weights, slight bend in the elbows','Raise to shoulder height, no higher','Lower slowly; don\'t swing']},
+  yraise:{d:2.6,k:[{...DST,...bod([86,114],-20),Hr:[[30,-8],[28,-8]]},{...bod([86,114],-10),Hr:[[20,-24],[18,-24]]}],ta:[140,-12],tips:['Lean back holding the straps, arms straight','Pull your arms up and out into a Y','Squeeze your shoulder blades; lower slowly']},
+  reardelt:{d:2.6,k:[{...DST,p:[58,70],t:70,Hr:[[0,31],[-2,31]]},{Hr:[[-14,18],[-16,18]]}],tips:['Hinge forward with a flat back','Lift the weights out to the sides, elbows soft','Squeeze between your shoulder blades']},
+  pullapart:{d:2.2,k:[{...DST,Hr:[[32,0],[30,0]],e:1},{Hr:[[10,-6],[8,-6]]}],ba:[150,34],tips:['Arms straight out at chest height','Pull your hands apart (or toward your face) by squeezing your shoulder blades','Return slowly; keep your ribs down']},
+  upright:{d:2.4,k:[{...DST,Hr:[[3,31],[1,31]]},{Hr:[[8,-2],[6,-2]],e:1}],tips:['Hold the weight in front of your thighs','Pull up to chest height, elbows leading high','Lower slowly; stop if your shoulders pinch']},
+  row:{d:2.4,k:[{...DST,...ROW_B},ROW_T],tips:['Hinge forward with a flat back','Pull the weight to your lower ribs, elbows close','Squeeze your shoulder blades, then lower slowly']},
+  row1:{d:2.4,k:[{...DST,...ROW_B,F:[[73,114],[60,114]],H:[[84.5,87],[106,96]]},{H:[[64,68],[106,96]]}],pr:[{b:'bench',x:96,w:40,y:96}],tips:['Brace one hand on the bench, back flat','Row the weight to your hip','Lower all the way; don\'t twist your chest']},
+  seatrow:{d:2.4,k:[{p:[50,108],t:0,F:[[96,110],[94,110]],k:1,Hr:[[30,8],[28,8]],e:-1},{t:-10,Hr:[[4,26],[2,26]]}],ba:[150,104],tips:['Sit tall, knees slightly bent','Pull the handle to your belly','Squeeze your shoulder blades; don\'t rock back']},
+  invrow:{d:2.4,k:[{...bod([20,112],81.9),F:[[20,112],[18,112]],H:[[96,68],[94,68]],hd:-80},{...bod([20,112],63.6)}],pr:[{b:'barlow',x:80,w:30,y:68}],tips:['Hang under the bar, body in a straight line','Pull your chest to the bar','Lower slowly; keep your hips up']},
+  trxrow:{d:2.4,k:[{...bod([84,114],-32),F:[[84,114],[80,114]],Hr:[[30,-12],[28,-12]],e:-1},{...bod([84,114],-14),Hr:[[12,4],[10,4]]}],ta:[140,-12],tips:['Walk your feet forward and lean back, arms straight','Pull your chest to your hands','Body stays straight like a plank; lower slowly']},
+  doorrow:{d:2.4,k:[{...bod([84,114],-28),F:[[84,114],[80,114]],Hr:[[30,-4],[28,-4]],e:-1},{...bod([84,114],-12),Hr:[[12,4],[10,4]]}],pr:[{b:'post',x:116}],tips:['Hold the door frame, feet close to it, lean back','Pull your chest toward the frame','Keep your body straight; lower with control']},
+  bandrow:{d:2.4,k:[{...DST,Hr:[[32,4],[30,4]]},{Hr:[[6,24],[4,24]]}],ba:[150,52],tips:['Stand tall, arms straight out','Pull your hands to your ribs, elbows close','Squeeze your shoulder blades, then return slowly']},
+  pulldown:{d:2.6,k:[{p:[64,92],t:0,F:[[90,114],[86,114]],k:1,Hr:[[4,-33],[2,-33]],e:1},{Hr:[[8,4],[6,4]],e:-1}],ba:[70,-12],pr:[{b:'seat',x:50,y:96}],tips:['Sit tall, hands a little wider than shoulders','Pull the bar to your upper chest, elbows down','Let it rise slowly until your arms are straight']},
+  pullup:{d:2.8,k:[HANG,{p:[76,38],F:[[72,84],[68,84]],k:-1}],pr:[BAR],tips:['Hang with straight arms, shoulders engaged','Pull until your chin clears the bar','Lower all the way down with control']},
+  hang:{d:4,k:[HANG,{p:[76,60]}],pr:[BAR],tips:['Grip the bar, arms straight','Relax your shoulders and let your body hang long','Breathe; drop down when your grip fades']},
+  hanglr:{d:3,k:[HANG,{F:[[100,96],[96,96]]},{F:[[124,60],[120,60]]},{F:[[100,96],[96,96]]}],pr:[BAR],tips:['Hang still with straight arms','Lift your legs to hip height without swinging','Lower slowly; don\'t use momentum']},
+  dips:{d:2.4,k:[{p:[76,49],t:0,F:[[58,88],[56,88]],k:-1,H:[[78,52],[74,52]],e:-1},{p:[72,66],t:12,F:[[54,104],[52,104]]}],pr:[{b:'barlow',x:64,w:30,y:52}],tips:['Start with straight arms, shoulders down','Lower until your upper arms are about level','Press back up; lean forward slightly for more chest']},
+  benchdip:{d:2.4,k:[{p:[60,89],t:0,F:[[96,114],[94,114]],k:1,H:[[58,92],[56,92]],e:-1},{p:[62,106],t:0}],pr:[{b:'bench',x:26,w:34,y:92}],tips:['Hands on the bench edge, fingers forward','Bend your elbows straight back to lower','Keep your back close to the bench; press up']},
+  pushdown:{d:2.2,k:[{...DST,t:8,Hr:[[12,8],[10,8]]},{Hr:[[4,31],[2,31]]}],ba:[96,-12],tips:['Elbows pinned to your sides','Push down until your arms are straight','Only your forearms move; control the way up']},
+  kickback:{d:2.2,k:[{...DST,...ROW_B,Hr:[[-6,24],[-8,24]]},{Hr:[[-32,6],[-34,6]]}],tips:['Hinge forward, upper arm along your side','Straighten your elbow to push the weight back','Upper arm stays still; squeeze your triceps']},
+  ohext:{d:2.6,k:[{...DST,Hr:[[0,-33],[-2,-33]],e:1},{Hr:[[-10,-8],[-12,-8]],e:-1}],hold:'mid',tips:['Weight overhead, elbows close to your head','Lower it behind your head by bending your elbows','Extend back up; keep your ribs down']},
+  curl:{d:2.2,k:[{...DST},{Hr:[[12,-1],[10,-1]]}],tips:['Elbows pinned at your sides','Curl the weight up without swinging','Lower slowly all the way down']},
+  slam:{d:1.6,k:[{...DST,Hr:[[4,-33],[2,-33]],e:1},{p:[56,84],t:62,H:[[98,104],[96,104]],e:-1}],hold:'mid',tips:['Ball overhead, rise onto your toes','Slam it down hard in front of you, hinging at the hips','Squat to pick it up with a flat back']},
+  othrow:{d:1.6,k:[{...DST,p:[58,82],t:50,Hr:[[6,30],[4,30]]},{p:[70,64],t:-8,Hr:[[12,-30],[10,-30]],e:1}],hold:'mid',tips:['Squat down holding the ball','Drive up and throw it up and back over your head','Use your legs and hips, not just your arms']},
+  thruster:{d:2.4,k:[{...DST,...SQ_B,Hr:[[11,4],[9,4]]},{p:[70,66],t:0,Hr:[[2,-33],[0,-33]],e:1}],hold:'mid',tips:['Weight at your shoulders, squat down','Drive up hard out of the squat','Use that drive to press overhead in one move']},
+  wallball:{d:2.4,k:[{...DST,...SQ_B,Hr:[[11,4],[9,4]]},{p:[70,62],t:0,Hr:[[10,-32],[8,-32]],e:1}],hold:'mid',pr:[{b:'wall',x:124}],tips:['Squat with the ball at your chest','Drive up and throw it to a target on the wall','Catch it and sink straight into the next squat']},
+  clean:{d:3.6,k:[{...DST,p:[54,84],t:60,Hr:[[0,33],[-2,33]]},{p:[70,66],t:0,Hr:[[7,-1],[5,-1]]},{Hr:[[2,-33],[0,-33]],e:1},{Hr:[[7,-1],[5,-1]],e:-1}],tips:['Hinge and grab the weight','Drive your hips and pull it to your shoulder','Press overhead, then lower back down with control']},
+  chop:{d:2,ba:[150,-8],k:[{...DST,t:-4,Hr:[[22,-22],[20,-22]],e:1},{p:[62,76],t:20,Hr:[[-12,26],[-14,26]],e:-1}],tips:['Start with arms high to one side','Pull diagonally down across your body, turning your chest','Pivot the back foot; control it back up']},
+  rot:{d:1.6,k:[{...DST,p:[66,70],t:6,Hr:[[-12,22],[-14,22]]},{p:[70,66],t:-2,Hr:[[30,-4],[28,-4]]}],hold:'mid',tips:['Stand side-on, ball by your back hip','Rotate through your hips and throw','Your arms follow; power comes from the turn']},
+  chestpress:{d:1.8,k:[{...DST,Hr:[[8,6],[6,6]]},{Hr:[[32,4],[30,4]]}],hold:'mid',ba:[150,40],tips:['Hold at your chest, elbows down','Press straight out in front, core braced','Bring it back to your chest under control']},
+  trxpress:{d:2.4,k:[{...bod([60,114],20),F:[[60,114],[56,114]],Hr:[[32,2],[30,2]],e:-1},{...bod([60,114],34),Hr:[[10,8],[8,8]]}],ta:[8,-12],tips:['Face away, lean forward on straight arms','Lower your chest between your hands','Push back up; body straight like a plank']},
+  pushpull:{d:2,k:[{...DST,F:[[80,114],[60,114]],Hr:[[32,2],[6,22]]},{Hr:[[6,22],[32,2]]}],tips:['Staggered stance, band in each hand','Press one arm forward while the other rows back','Switch smoothly; don\'t twist your hips']},
+  carry:{d:1.2,k:[{...DST,p:[70,67],F:[[82,114],[58,114]]},{F:[[58,114],[82,114]]}],tips:['Heavy weight in each hand, stand tall','Walk with short, steady steps','Shoulders back and down; don\'t lean']},
+  monster:{d:1.4,k:[{...DST,p:[66,74],t:20,F:[[78,114],[58,114]],Hr:[[12,18],[10,18]]},{F:[[58,114],[78,114]]}],tips:['Band around your knees or ankles, half squat','Step forward and out against the band','Keep tension on the band the whole time']},
+  bear:{d:1,k:[{p:[58,84],t:86,F:[[40,114],[46,112]],H:[[104,113],[94,114]],k:1,hd:-10},{F:[[46,112],[40,114]],H:[[94,114],[104,113]]}],tips:['On hands and toes, knees hovering an inch up','Move opposite hand and foot together','Back flat, hips low']},
+  crab:{d:1,k:[{p:[60,90],t:-72,F:[[92,114],[86,114]],H:[[30,114],[36,114]],k:1,hd:20},{F:[[86,114],[92,114]],H:[[36,114],[30,114]]}],tips:['Sit, hands behind you, then lift your hips','Walk with opposite hand and foot','Keep your hips up and chest open']},
+  burpee:{d:3.4,k:[{...DST},{p:[62,96],t:70,F:[[72,114],[68,114]],H:[[96,114],[94,114]]},{...bod([22,112],66.6),F:[[22,112],[20,112]]},{p:[62,96],t:70,F:[[72,114],[68,114]]},{p:[70,52],t:0,F:[[73,102],[67,102]],Hr:[[4,-32],[2,-32]],e:1}],tips:['Squat and put your hands on the floor','Jump your feet back to a plank, then jump them back in','Jump up and reach overhead']},
+  sqthrust:{d:2.8,k:[{...DST},{p:[62,96],t:70,F:[[72,114],[68,114]],H:[[96,114],[94,114]]},{...bod([22,112],66.6),F:[[22,112],[20,112]]},{p:[62,96],t:70,F:[[72,114],[68,114]]}],tips:['Squat and plant your hands','Jump your feet back to a plank','Jump them back in and stand up']},
+  jacks:{d:.9,k:[{...DST},{p:[70,60],F:[[78,108],[62,108]],Hr:[[4,-32],[2,-32]],e:1}],tips:['Jump your feet out as your arms go overhead','Jump back in, arms down','Stay light on the balls of your feet']},
+  stepjack:{d:1.4,k:[{...DST},{F:[[80,114],[67,114]],Hr:[[4,-32],[2,-32]],e:1},{...DST},{F:[[73,114],[58,114]],Hr:[[4,-32],[2,-32]],e:1}],tips:['Step one foot out as your arms go up','Step back in, arms down','Alternate sides; no jumping needed']},
+  box:{d:1.2,k:[{...DST,F:[[82,114],[60,114]],Hr:[[12,-4],[10,-6]],e:-1},{Hr:[[33,-3],[10,-6]]},{Hr:[[12,-4],[10,-6]]},{Hr:[[12,-4],[33,-4]]}],tips:['Stagger your feet, hands up guarding your face','Punch straight out and snap back to guard','Turn your hips into each punch; keep moving']},
+  run:{d:.7,k:RUN(90,0,14),tips:['Tall posture, slight forward lean','Land under your hips, not out in front','Drive your arms forward and back, not across']},
+  sprint:{d:.5,k:[{p:[72,66],t:18,F:[[88,92],[54,112]],Hr:[[-14,22],[18,10]]},{F:[[54,112],[88,92]],Hr:[[18,10],[-14,22]]}],tips:['Lean forward and drive your knees','Pump your arms hard','Short quick steps as you change direction']},
+  highknee:{d:.55,k:[{p:[70,64],t:0,F:[[90,86],[70,112]],Hr:[[-10,24],[16,10]]},{F:[[70,112],[90,86]],Hr:[[16,10],[-10,24]]}],tips:['Drive each knee up to hip height','Stay on the balls of your feet','Pump your arms; stay tall']},
+  buttkick:{d:.55,k:[{p:[70,64],t:4,F:[[56,80],[70,112]],Hr:[[-10,24],[14,14]]},{F:[[70,112],[56,80]],Hr:[[14,14],[-10,24]]}],tips:['Jog in place','Kick your heels up toward your glutes','Quick feet, tall chest']},
+  walk:{d:1.2,k:[{...DST,p:[70,68],F:[[82,114],[58,114]],Hr:[[-8,28],[8,28]]},{F:[[58,114],[82,114]],Hr:[[8,28],[-8,28]]}],tips:['Stand tall and look ahead','Swing your arms naturally','Brisk, steady pace you can talk at']},
+  stairs:{d:1.2,k:[{...DST,p:[72,62],t:8,F:[[86,98],[64,114]],Hr:[[12,8],[10,8]]},{F:[[64,114],[86,98]]}],pr:[{b:'steps'}],tips:['Stand tall; hold the rails lightly or not at all','Push through your whole foot on each step','Steady rhythm; don\'t lean on the machine']},
+  hop:{d:.8,k:[HOP0,{p:[66,64],F:[[76,104],[62,104]]}],tips:['Stay low in an athletic stance','Quick, light hops on the balls of your feet','Land softly and stay balanced']},
+  skater:{d:1.2,k:[{...HOP0,F:[[70,114],[52,104]]},{p:[70,62],F:[[74,104],[66,104]]},{p:[66,74],F:[[52,104],[70,114]]},{p:[70,62],F:[[74,104],[66,104]]}],tips:['Leap sideways from one foot to the other','Land softly on one leg, other leg behind','Swing your arms for balance']},
+  tuck:{d:1.2,k:[{...HOP0,Hr:[[-6,26],[-8,26]]},{p:[70,48],t:10,F:[[82,74],[80,74]],Hr:[[18,16],[16,16]]},{p:[70,62],t:0,F:[[73,108],[67,108]]}],tips:['Dip down, then jump as high as you can','Pull your knees up to your chest','Land softly and reset']},
+  broad:{d:1.6,k:[{...HOP0,p:[60,82],t:44,Hr:[[-16,22],[-18,22]]},{p:[72,56],t:20,F:[[64,100],[60,100]],Hr:[[30,-14],[28,-14]]},{p:[76,82],t:30,F:[[84,114],[80,114]],Hr:[[24,8],[22,8]]}],tips:['Swing your arms back and load your hips','Jump forward as far as you can','Land softly in a squat, then reset']},
+  skip:{d:.5,k:[{...DST,p:[70,64],F:[[74,112],[68,112]],Hr:[[12,24],[10,24]]},{p:[70,60],F:[[74,108],[68,108]]}],rope:1,tips:['Elbows close, turn the rope with your wrists','Small hops, just high enough to clear the rope','Land softly on the balls of your feet']},
+  bike:{d:1,lin:1,k:circ(8,a=>({p:[62,66],t:22,F:[[72+10*Math.cos(a),98+10*Math.sin(a)],[72-10*Math.cos(a),98-10*Math.sin(a)]],H:[[98,52],[96,52]],k:1,e:-1})),pr:[{b:'bike'}],tips:['Saddle at hip height, slight bend at the bottom','Push and pull through the whole pedal circle','Relaxed shoulders, light grip']},
+  rower:{d:2.4,k:[{p:[60,104],t:25,F:[[100,108],[98,108]],k:1,H:[[104,86],[102,86]],e:-1},{p:[44,104],t:-18,Hr:[[12,10],[10,10]]},{p:[44,104],t:10,H:[[100,92],[98,92]]}],pr:[{b:'rail'}],tips:['Push with your legs first','Then lean back slightly and pull the handle to your ribs','Return in reverse: arms, body, then knees']},
+  tread:{d:.7,k:RUN(90,0,14),pr:[{b:'belt'}],tips:['Run tall in the middle of the belt','Look ahead, not at your feet','Let go of the rails']},
+  catcow:{d:4,k:[{...FOURS,c:8,hd:30},{c:-6,hd:-30,p:[60,91]}],tips:['Hands under shoulders, knees under hips','Round your back up and tuck your chin (cat)','Drop your belly and look up (cow); move with your breath']},
+  thread:{d:4,k:[{...FOURS},{p:[60,92],t:84,H:[[78,110],[90,114]]},{...FOURS},{p:[60,88],t:76,Hr:[[0,-33],[0,31]]}],tips:['On hands and knees','Slide one arm under your body and rest your shoulder down','Then open that arm up to the ceiling; follow it with your eyes']},
+  wgs:{d:4,k:[{p:[64,96],t:70,F:[[92,114],[24,112]],k:1,H:[[90,112],[96,114]],e:-1},{Hr:[[0,-33],[0,31]],e:1}],tips:['Step into a long lunge, hands down inside the front foot','Drop your elbow toward the floor','Rotate and reach that arm to the ceiling']},
+  ninety:{d:4,k:[{p:[60,108],t:-6,F:[[92,112],[80,112]],k:1,H:[[36,113],[34,113]],e:-1},{F:[[84,104],[96,112]]}],tips:['Sit with both knees bent at 90°, one in front, one to the side','Swing both knees to the other side','Sit tall; use your hands behind you if needed']},
+  ankle:{d:3,k:[{p:[62,90],t:0,F:[[88,114],[30,113]],k:1,H:[[86,88],[84,88]],e:-1},{p:[68,90]}],tips:['Half kneel, front foot flat','Rock your front knee forward over your toes','Keep the heel down; rock back and repeat']},
+  hipflex:{d:4,k:[{p:[62,90],t:0,F:[[88,114],[30,113]],k:1,H:[[86,88],[84,88]],e:-1},{p:[66,92],t:-4}],tips:['Half kneel, back knee on a cushion','Squeeze the back glute and shift your hips forward','Stay tall; feel the stretch in the front of the back hip']},
+  scorpion:{d:4,k:[{p:[60,108],t:90,F:[[12,110],[10,110]],k:1,H:[[96,113],[94,113]],hd:0},{F:[[54,78],[10,110]]}],tips:['Lie face down, arms out','Lift one foot up and reach it across toward the opposite hand','Keep your chest down; switch sides']},
+  swing2:{d:1.6,k:[{...DST,F:[[104,90],[67,114]],H:[[72,69],[108,40]]},{F:[[36,92],[67,114]]}],pr:[{b:'wall',x:118}],tips:['Hold something for balance','Swing one leg forward and back, relaxed','Gradually go higher; stay tall']},
+  armcirc:{d:1.6,lin:1,k:circ(8,a=>({...DST,Hr:[[33*Math.sin(a),33*Math.cos(a)],[33*Math.sin(a),33*Math.cos(a)]]})),tips:['Arms straight out','Make circles, small to big','Switch direction halfway']},
+  wallslide:{d:3,k:[{...DST,Hr:[[-2,-2],[-4,-2]],e:1},{Hr:[[-2,-33],[-4,-33]]}],pr:[{b:'wall',x:58}],tips:['Back, head and arms against the wall','Slide your arms up while keeping contact','Slide down into a W; ribs stay down']},
+  disloc:{d:4,k:[{...DST,Hr:[[24,22],[22,22]]},{Hr:[[2,-33],[0,-33]]},{Hr:[[-24,22],[-26,22]]},{Hr:[[2,-33],[0,-33]]}],tips:['Hold the band wide with straight arms','Lift it over your head and behind you','Bring it back over; go wider if it pinches']},
+  dog:{d:4,k:[{p:[58,70],t:125,F:[[36,113],[34,113]],H:[[96,114],[94,114]],k:1,hd:0},{p:[80,106],t:35,hd:-20}],tips:['Start with hips high, heels reaching down','Lower your hips and lift your chest into cobra','Push back up to the V']},
+  cobra:{d:4,k:[{p:[66,108],t:40,F:[[18,112],[16,112]],H:[[86,114],[84,114]],c:-4,hd:-20},{t:46}],tips:['Lie face down, hands under your shoulders','Press up, lifting your chest; hips stay down','Shoulders away from your ears; breathe']},
+  child:{d:4,k:[{p:[50,98],t:100,F:[[46,113],[44,113]],k:1,H:[[118,112],[116,112]],e:-1,hd:10},{p:[48,97]}],tips:['Kneel, big toes together','Sit back on your heels and reach your arms forward','Rest your forehead down and breathe into your back']},
+  twist:{d:4,k:[{...LIE,F:[[24,110],[12,110]],H:[[102,113],[100,113]],e:-1},{F:[[72,96],[12,110]]}],tips:['Lie on your back, arms out','Pull one knee across your body toward the floor','Keep both shoulders down; breathe']},
+  hamstr:{d:4,k:[{p:[50,108],t:52,F:[[98,110],[96,110]],k:1,H:[[86,102],[84,102]],e:-1,c:4},{t:60}],tips:['Sit with your legs straight','Hinge from your hips and reach toward your toes','Flat back is better than reaching far']},
+  quadstr:{d:4,k:[{...DST,F:[[58,70],[67,114]],H:[[59,70],[76,68]]},{t:3}],tips:['Stand on one leg; hold a wall if needed','Pull your heel to your glute','Knees together, hips pushed slightly forward']},
+  glutestr:{d:4,k:[{p:[54,108],t:-16,F:[[80,88],[92,112]],k:1,H:[[34,113],[32,113]],e:-1},{t:-10}],tips:['Cross one ankle over the other knee','Pull that knee toward you or lean forward','Keep your back long; breathe']},
+  calfstr:{d:4,k:[{p:[64,72],t:28,F:[[84,114],[40,114]],k:1,H:[[112,47],[110,47]],e:-1},{p:[66,72]}],pr:[{b:'wall',x:114}],tips:['Hands on the wall, one foot back','Back leg straight, heel pressed down','Lean in until you feel the calf stretch']},
+  chestr:{d:4,k:[{...DST,Hr:[[-30,-6],[2,31]]},{t:6}],tips:['Arm against a door frame at shoulder height','Step through and turn your chest away','Gentle stretch across the front of the shoulder']},
+  shoustr:{d:4,k:[{...DST,Hr:[[18,4],[12,10]]},{Hr:[[20,2],[14,8]]}],tips:['Bring one arm across your chest','Hold it above the elbow with the other hand','Shoulder stays down; breathe']},
+  tristr:{d:4,k:[{...DST,Hr:[[-8,-14],[2,-18]],e:1},{Hr:[[-10,-12],[2,-20]]}],tips:['Reach one hand down behind your head','Gently press the elbow with the other hand','Stand tall; don\'t arch your back']},
+  latstr:{d:4,k:[{...DST,Hr:[[6,-33],[4,-33]]},{t:8}],tips:['Reach both arms overhead','Lean gently to one side','Feel it along your side; switch']},
+  roll:{d:2.4,k:[{...DPL,p:[62,100],F:[[16,106],[14,106]]},{p:[70,100],F:[[24,106],[22,106]],H:[[114,113],[112,113]]}],roller:[42,106],tips:['Roller under the muscle, support your weight on your arms','Roll slowly up and down','Pause on tight spots and breathe; avoid joints']},
+  rollseat:{d:2.4,k:[{p:[60,96],t:-40,F:[[110,104],[108,104]],k:1,H:[[40,113],[38,113]],e:-1},{p:[52,96],F:[[102,104],[100,104]],H:[[32,113],[30,113]]}],roller:[84,106],tips:['Sit with the roller under your legs, hands behind you','Lift your hips and roll slowly','Pause on tight spots; breathe']},
+  rollback:{d:2.4,k:[{p:[66,94],t:-96,F:[[90,114],[86,114]],k:1,Hr:[[-4,-8],[-6,-8]],e:1},{p:[72,95],t:-94}],roller:[40,105],tips:['Roller under your upper back, hands behind your head','Lift your hips and roll from mid-back to shoulders','Keep your lower back off the roller']},
+  getup:{d:9,k:[{p:[60,107],t:-90,F:[[78,114],[108,110]],k:1,Hr:[[0,-33],[0,26]],e:1},{t:-60,H:null,Hr:[[0,-33],[-6,24]]},{p:[62,106],t:-30,Hr:[[0,-33],[-10,32]]},{p:[60,90],t:0,F:[[82,114],[36,113]],Hr:[[0,-33],[2,31]]},{...DST,Hr:[[0,-33],[-2,31]],e:1},{p:[60,90],t:0,F:[[82,114],[36,113]]},{p:[62,106],t:-30,F:[[78,114],[108,110]],Hr:[[0,-33],[-10,32]]},{t:-60,Hr:[[0,-33],[-6,24]]}],hold:'near',tips:['Lie down with the bell pressed up; eyes on it the whole time','Roll to your elbow, then your hand, lift your hips and sweep the leg under to kneel','Stand up, then reverse every step slowly']},
+  windmill:{d:3.6,k:[{...DST,F:[[78,114],[64,114]],Hr:[[0,-33],[-2,31]],e:1},{p:[58,68],t:72,Hr:[[0,-33],[0,31]]}],hold:'near',tips:['Bell locked out overhead, eyes on it','Push your hips back and slide the free hand down your leg','Keep the top arm straight; stand back up']},
+  crunch:{d:2.2,k:[{...LIE,Hr:[[8,-4],[6,-4]],e:1},{t:62,c:4}],tips:['Lie on your back, knees bent','Curl your shoulders off the floor using your abs','Don\'t pull on your neck; lower slowly']},
+  kneelcrunch:{d:2.4,k:[{p:[60,90],t:0,F:[[36,113],[34,113]],k:1,Hr:[[8,-4],[6,-4]],e:1},{t:60,c:6}],ba:[66,-12],tips:['Kneel facing the machine, hands by your head','Crunch down by rounding your spine','Hips stay still; control the way up']},
+  bicycle:{d:1.4,k:[{...LIE,t:66,F:[[52,90],[14,100]],Hr:[[8,-4],[6,-4]],e:1},{t:62,F:[[14,100],[52,90]]}],tips:['Hands lightly behind your head, shoulders off the floor','Bring one knee in as you turn the opposite elbow toward it','Switch sides slowly; straighten the other leg']},
+  rollout:{d:3,k:[{p:[60,90],t:30,F:[[36,113],[34,113]],k:1,H:[[88,108],[86,108]],e:-1},{p:[72,100],t:80,H:[[124,108],[122,108]]}],wheel:1,tips:['Kneel, hands on the wheel under your shoulders','Roll forward slowly with your core braced','Only go as far as you can without your back sagging; pull back']},
+  legraise:{d:3,k:[{...LIE,F:[[12,108],[10,108]],k:1,H:[[86,113],[84,113]]},{F:[[26,73],[24,73]]},{F:[[60,59],[58,59]]},{F:[[26,73],[24,73]]}],tips:['Lie on your back, hands under your hips or holding the bench','Lift your straight legs up','Lower slowly without letting your back arch']},
+  deadbug:{d:3.2,k:[{...LIE,F:[[36,84],[34,84]],H:[[90,74],[88,74]],e:-1},{H:[[122,104],[88,74]],F:[[36,84],[12,104]]},{H:[[90,74],[88,74]],F:[[36,84],[34,84]]},{H:[[90,74],[122,104]],F:[[12,104],[34,84]]}],tips:['Lie on your back, arms up, knees over hips','Lower one arm and the opposite leg toward the floor','Keep your lower back pressed down; switch sides']},
+  rtwist:{d:1.6,k:[{p:[64,108],t:-40,F:[[100,98],[98,98]],k:1,Hr:[[22,10],[22,10]],e:-1},{t:-34,Hr:[[12,20],[12,20]]}],hold:'mid',tips:['Sit, lean back a little, feet up or down','Rotate your chest side to side','Move from your ribs, not just your arms']},
+  pallof:{d:2.4,k:[{...DST,Hr:[[8,6],[6,6]]},{Hr:[[32,4],[30,4]]}],ba:[150,40],tips:['Stand side-on to the band anchor','Press your hands straight out from your chest','Don\'t let the band twist you; hold, then return']},
+  superman:{d:3,k:[{p:[60,108],t:90,F:[[12,110],[10,110]],k:1,H:[[124,110],[122,110]],hd:0},{t:82,F:[[14,100],[12,100]],H:[[122,96],[120,96]],c:-4,hd:-10}],tips:['Lie face down, arms overhead','Lift your arms, chest and legs a few inches','Squeeze your glutes and back; look at the floor']},
+  sup2plank:{d:3.6,k:[{p:[60,108],t:84,F:[[12,104],[10,104]],k:1,H:[[122,98],[120,98]],c:-4,hd:-10},{...DPL,c:0}],tips:['Lift into a superman','Lower down, then press up into a plank','Lower back down and repeat']},
+  backext:{d:2.8,k:[{p:[60,80],t:84,F:[[14,96],[12,96]],k:1,Hr:[[6,-4],[4,-4]],e:1},{t:150}],pr:[{b:'pad',x:62,y:86}],tips:['Hips on the pad, ankles locked','Lower your chest by hinging at the hips','Rise until your body is in a straight line; don\'t over-arch']},
+  calf:{d:1.8,k:[{...DST},{p:[70,60],F:[[74,108],[68,108]]}],tips:['Stand tall, feet hip-width','Rise onto the balls of your feet','Pause at the top; lower slowly']},
+  legpress:{d:2.6,k:[{p:[54,92],t:-50,F:[[76,72],[74,72]],k:1,H:[[56,96],[54,96]],e:-1},{F:[[88,60],[86,60]]}],pr:[{b:'seatb'}],tips:['Feet hip-width on the platform','Lower until your knees are at about 90°','Push back up; don\'t lock your knees hard']},
+  legext:{d:2.2,k:[{p:[60,88],t:-6,F:[[86,112],[84,112]],k:1,H:[[58,92],[56,92]],e:-1},{F:[[106,88],[104,88]]}],pr:[{b:'seat',x:46,y:92}],tips:['Sit back, pad on the front of your ankles','Straighten your legs fully','Lower slowly']},
+  hamcurl:{d:2.4,k:[{p:[60,94],t:90,F:[[12,96],[10,96]],k:1,H:[[100,100],[98,100]],e:-1,hd:0},{F:[[44,70],[42,70]]}],pr:[{b:'bench',x:16,w:94,y:100}],tips:['Lie face down, pad above your heels','Curl your heels toward your glutes','Hips stay down; lower slowly']},
+  trxham:{d:2.6,k:[{p:[64,100],t:102,F:[[18,96],[16,96]],k:-1,H:[[86,113],[84,113]],e:-1},{p:[66,92],t:118,F:[[44,96],[42,96]]}],ta:'feet',tips:['Lie on your back, heels in the straps','Lift your hips and pull your heels in','Keep your hips up as you straighten out']},
+  trxpike:{d:2.6,k:[{...PU_U,F:[[24,100],[22,100]]},{p:[74,58],t:146,F:[[58,100],[56,100]]}],ta:'feet',tips:['High plank with feet in the straps','Lift your hips up into a pike, legs straight','Lower back to a plank without sagging']},
+  bodysaw:{d:2.6,k:[{...DPL,F:[[15,100],[13,100]]},{p:[56,103],F:[[9,100],[7,100]]}],ta:'feet',tips:['Forearm plank, feet in the straps','Rock your body forward and back from your shoulders','Keep your hips level the whole time']},
+};
+/* which demo a move uses: first match wins */
+const DMO_RULES=[
+  [/^foam roll · (quads|lats)/i,'roll'],[/^foam roll · (hamstrings|calves|glutes)/i,'rollseat'],[/^foam roll · upper back/i,'rollback'],
+  [/^stretch · hamstrings/i,'hamstr'],[/^stretch · quads/i,'quadstr'],[/^stretch · hip flexors/i,'hipflex'],[/^stretch · glutes/i,'glutestr'],[/^stretch · calves/i,'calfstr'],
+  [/^stretch · chest/i,'chestr'],[/^stretch · shoulders/i,'shoustr'],[/^stretch · triceps/i,'tristr'],[/^stretch · lats/i,'latstr'],
+  [/cat-cow/i,'catcow'],[/thread the needle|thoracic/i,'thread'],[/world's greatest/i,'wgs'],[/90\/90/i,'ninety'],[/ankle rocks/i,'ankle'],[/scorpion/i,'scorpion'],
+  [/leg swings/i,'swing2'],[/arm circles/i,'armcirc'],[/wall slides/i,'wallslide'],[/dislocate/i,'disloc'],[/downward dog/i,'dog'],[/^cobra/i,'cobra'],[/child's pose/i,'child'],
+  [/spinal twist/i,'twist'],[/dead hang/i,'hang'],[/deep squat hold/i,'deepsq'],
+  [/^treadmill/i,'tread'],[/run outside/i,'run'],[/walk outside|elliptical/i,'walk'],[/stair/i,'stairs'],[/^bike/i,'bike'],[/^rower/i,'rower'],
+  [/^skipping|skipping rope/i,'skip'],[/bodyweight cardio|jumping jacks/i,'jacks'],[/step jacks/i,'stepjack'],[/shadow boxing/i,'box'],[/butt kick/i,'buttkick'],[/high knees/i,'highknee'],
+  [/sprint|shuttle|t-drill|zig-zag|box drill|carioca|backpedal/i,'sprint'],[/tuck jump/i,'tuck'],[/broad jump/i,'broad'],[/skater/i,'skater'],[/shuffle|\bhops?\b|quick feet/i,'hop'],
+  [/turkish/i,'getup'],[/windmill/i,'windmill'],[/halo/i,'halo'],[/snatch/i,'snatch'],[/swing/i,'swing'],[/high pull/i,'highpull'],
+  [/clean and press/i,'clean'],[/man-maker|burpee/i,'burpee'],[/squat thrust/i,'sqthrust'],[/wall ball/i,'wallball'],[/thruster|squat to press/i,'thruster'],
+  [/lunge to press/i,'lungepress'],[/lunge with rotation/i,'lungerot'],[/jumping lunge/i,'jumplunge'],[/slam/i,'slam'],[/overhead throw/i,'othrow'],
+  [/rotational/i,'rot'],[/woodchop/i,'chop'],[/push-pull/i,'pushpull'],[/chest pass(?!.*sprint)|band chest press/i,'chestpress'],[/trx chest press/i,'trxpress'],[/pallof/i,'pallof'],
+  [/farmer/i,'carry'],[/monster walk/i,'monster'],[/bear crawl/i,'bear'],[/crab walk/i,'crab'],[/inchworm/i,'inchworm'],[/atomic/i,'atomic'],[/plank to push-up/i,'pl2pu'],
+  [/superman to plank/i,'sup2plank'],[/superman/i,'superman'],[/back extension/i,'backext'],
+  [/renegade/i,'renegade'],[/shoulder tap/i,'taps'],[/mountain climber/i,'mclimb'],[/plank jack/i,'hop'],[/trx pike/i,'trxpike'],[/body saw/i,'bodysaw'],[/plank/i,'plank'],
+  [/pike push-up/i,'pikepu'],[/push-up/i,'pushup'],
+  [/hanging leg raise/i,'hanglr'],[/leg raise/i,'legraise'],[/dead bug/i,'deadbug'],[/bicycle/i,'bicycle'],[/cable crunch/i,'kneelcrunch'],[/crunch/i,'crunch'],[/ab wheel/i,'rollout'],[/russian twist/i,'rtwist'],
+  [/trx hamstring/i,'trxham'],[/hamstring curl/i,'hamcurl'],[/leg extension/i,'legext'],[/leg press/i,'legpress'],[/calf raise/i,'calf'],
+  [/single-leg glute bridge/i,'bridge1'],[/hip thrust/i,'thrust'],[/glute bridge/i,'bridge'],
+  [/single-leg (kettlebell )?deadlift/i,'sldl'],[/good morning/i,'goodmorn'],[/romanian/i,'hinge'],[/deadlift/i,'deadlift'],
+  [/pull-up|chin-up/i,'pullup'],[/pulldown/i,'pulldown'],[/^dips/i,'dips'],[/bench dips/i,'benchdip'],
+  [/inverted row/i,'invrow'],[/trx (rows|power pull)/i,'trxrow'],[/doorframe/i,'doorrow'],[/seated cable row/i,'seatrow'],[/band rows/i,'bandrow'],
+  [/single-arm dumbbell row|bench-supported|chest-supported/i,'row1'],[/upright row/i,'upright'],[/row/i,'row'],
+  [/face pull|pull-apart/i,'pullapart'],[/y-raise/i,'yraise'],[/rear-delt/i,'reardelt'],[/lateral raise|front raise/i,'raise'],
+  [/push press/i,'pushpress'],[/overhead press|shoulder press|arnold|band overhead/i,'press'],
+  [/skull/i,'skull'],[/pullover/i,'pullover'],[/flye/i,'fly'],[/bench press|incline .*press|close-grip press/i,'bench'],
+  [/pushdown/i,'pushdown'],[/kickback/i,'kickback'],[/overhead .*extension|triceps extension/i,'ohext'],[/curl/i,'curl'],
+  [/split squat/i,'split'],[/step-up/i,'stepup'],[/pistol/i,'pistol'],[/lunge/i,'lunge'],[/jump squat/i,'jumpsq'],[/back squat|front squat/i,'squatbb'],[/squat/i,'squat']];
+/* equipment each move uses, from the libraries above, for what the figure holds */
+const DMO_EQ={};
+for(const g in LIB)LIB[g].forEach(e=>DMO_EQ[e[0]]=e[2]);
+[FUNC,AGI,HIITX,MOB,ROLL,STRETCH].forEach(l=>l.forEach(e=>{if(DMO_EQ[e[0]]==null)DMO_EQ[e[0]]=e[1]}));
+function demoKey(name){if(!name)return null;for(const [re,k] of DMO_RULES)if(re.test(name))return k;return null}
+/* resolve a demo's keys into absolute poses */
+function dmPose(q){const r=q.t*DR,sh=[q.p[0]+Math.sin(r)*30,q.p[1]-Math.cos(r)*30];return{...q,sh,H:q.H||q.Hr.map(h=>[sh[0]+h[0],sh[1]+h[1]])}}
+function dmKeys(P){let prev=DST;return P.k.map(k=>{const q={...prev,...k};if(k.H)q.Hr=null;else if(k.Hr)q.H=null;prev=q;return dmPose(q)})}
+function dmIK(r,g,a,b,s){let dx=g[0]-r[0],dy=g[1]-r[1],d=Math.hypot(dx,dy)||.001;const ux=dx/d,uy=dy/d;
+  if(d>=a+b-.01)return[[r[0]+ux*a,r[1]+uy*a],[r[0]+ux*(a+b),r[1]+uy*(a+b)]];
+  d=Math.max(d,Math.abs(a-b)+.5);const al=-s*Math.acos(Math.max(-1,Math.min(1,(a*a+d*d-b*b)/(2*a*d)))),c=Math.cos(al),n=Math.sin(al);
+  return[[r[0]+(ux*c-uy*n)*a,r[1]+(ux*n+uy*c)*a],[r[0]+ux*d,r[1]+uy*d]]}
+const dmL=(a,b,u)=>a+(b-a)*u,dmLP=(a,b,u)=>[dmL(a[0],b[0],u),dmL(a[1],b[1],u)];
+function dmAt(R,ph,lin){const n=R.length,x=Math.min(n-1e-6,Math.max(0,((ph%1)+1)%1*n)),i=Math.floor(x),u0=x-i,u=lin?u0:(1-Math.cos(Math.PI*u0))/2,a=R[i],b=R[(i+1)%n];
+  return{p:dmLP(a.p,b.p,u),t:dmL(a.t,b.t,u),c:dmL(a.c||0,b.c||0,u),hd:dmL(a.hd||0,b.hd||0,u),F:a.F.map((f,j)=>dmLP(f,b.F[j],u)),H:a.H.map((h,j)=>dmLP(h,b.H[j],u)),k:u<.5?a.k:b.k,e:u<.5?a.e:b.e}}
+function dmSkel(q){const r=q.t*DR,hip=q.p,sh=[hip[0]+Math.sin(r)*30,hip[1]-Math.cos(r)*30],hr=r+q.hd*DR,head=[sh[0]+Math.sin(hr)*10,sh[1]-Math.cos(hr)*10];
+  const pick=(v,i)=>Array.isArray(v)?v[i]:v;
+  return{hip,sh,head,c:q.c,legs:[0,1].map(i=>dmIK(hip,q.F[i],24,24,pick(q.k,i))),arms:[0,1].map(i=>dmIK(sh,q.H[i],17,16,pick(q.e,i)))}}
+const f1=n=>Math.round(n*10)/10;
+const dmPath=(a,j)=>'M'+f1(a[0])+' '+f1(a[1])+'L'+f1(j[0][0])+' '+f1(j[0][1])+'L'+f1(j[1][0])+' '+f1(j[1][1]);
+function dmTorso(s){const dx=s.sh[0]-s.hip[0],dy=s.sh[1]-s.hip[1],m=[(s.hip[0]+s.sh[0])/2,(s.hip[1]+s.sh[1])/2],L=Math.hypot(dx,dy)||1,cx=m[0]+dy/L*s.c,cy=m[1]-dx/L*s.c;
+  return 'M'+f1(s.hip[0])+' '+f1(s.hip[1])+'Q'+f1(cx)+' '+f1(cy)+' '+f1(s.sh[0])+' '+f1(s.sh[1])}
+/* fixed kit drawn once behind the figure */
+function dmStatic(P){return (P.pr||[]).map(o=>{const b=o.b;
+  if(b==='bench')return '<path class="kit" d="M'+o.x+' '+o.y+'h'+o.w+'M'+(o.x+5)+' '+o.y+'V'+DG+'M'+(o.x+o.w-5)+' '+o.y+'V'+DG+'"/>';
+  if(b==='box')return '<rect class="kit" x="'+o.x+'" y="'+o.y+'" width="'+o.w+'" height="'+(DG-o.y)+'" rx="2"/>';
+  if(b==='bar')return '<path class="kit" d="M'+o.x+' '+o.y+'h'+o.w+'M'+(o.x+4)+' '+o.y+'V-12M'+(o.x+o.w-4)+' '+o.y+'V-12"/>';
+  if(b==='barlow')return '<path class="kit" d="M'+o.x+' '+o.y+'h'+o.w+'M'+(o.x+o.w-3)+' '+o.y+'V'+DG+'"/>';
+  if(b==='wall')return '<path class="kit" d="M'+o.x+' -12V'+DG+'"/>';
+  if(b==='post')return '<path class="kit" d="M'+o.x+' -12V'+DG+'M'+(o.x+5)+' -12V'+DG+'"/>';
+  if(b==='seat')return '<path class="kit" d="M'+(o.x)+' '+o.y+'h30M'+(o.x+15)+' '+o.y+'V'+DG+'"/>';
+  if(b==='seatb')return '<path class="kit" d="M36 98h28M50 98V'+DG+'M36 98L20 72"/>';
+  if(b==='pad')return '<path class="kit" d="M'+o.x+' '+o.y+'h16M'+(o.x+8)+' '+o.y+'L'+(o.x-6)+' '+DG+'M18 100l-6 '+(DG-100)+'"/>';
+  if(b==='bike')return '<path class="kit" d="M50 64h16M60 64L72 98L98 52M94 50h10M72 98L104 '+DG+'M72 98L44 '+DG+'"/><circle class="kit" cx="72" cy="98" r="10"/>';
+  if(b==='rail')return '<path class="kit" d="M20 110h124M144 110V90M100 108v-10"/><circle class="kit" cx="140" cy="96" r="8"/>';
+  if(b==='belt')return '<path class="kit" d="M20 '+(DG+3)+'h120M138 '+(DG+3)+'L128 40h-6"/>';
+  if(b==='steps')return '<path class="kit" d="M40 '+DG+'h22v-16h30v16h22M118 '+DG+'V30"/>';
+  return ''}).join('')}
+/* what the figure holds, from the move's name and kit */
+function dmHeld(name,P){if(P.hold==='none')return null;const eq=DMO_EQ[name]||'',n=name.toLowerCase();
+  const t=/barbell|^(bench press|back squats|front squats|deadlifts|bent-over rows|overhead press|good mornings|romanian deadlifts|hip thrusts|close-grip bench press|skull crushers|upright rows)$/.test(n)&&eq.includes('barbell')?'bb':
+    eq.includes('dumbbells')?'db':eq.includes('kettlebell')?'kb':eq.includes('medball')?'ball':null;
+  return t?{t,one:/single-arm|single-leg kettlebell|one-arm|concentration/i.test(name)||P.hold==='near'}:null}
+function dmDyn(P,s,name,held,ph){let o='';const hand=i=>s.arms[i][1],elb=i=>s.arms[i][0],mid=[(hand(0)[0]+hand(1)[0])/2,(hand(0)[1]+hand(1)[1])/2];
+  const ahead=(i,d)=>{const h=hand(i),e=elb(i),L=Math.hypot(h[0]-e[0],h[1]-e[1])||1;return[h[0]+(h[0]-e[0])/L*d,h[1]+(h[1]-e[1])/L*d]};
+  const line=(a,b)=>'<path class="strap" d="M'+f1(a[0])+' '+f1(a[1])+'L'+f1(b[0])+' '+f1(b[1])+'"/>';
+  if(P.ta)o+=P.ta==='feet'?line([10,-12],s.legs[0][1]):line(P.ta,mid);
+  if(P.ba&&!/pull-apart/i.test(name)&&/band|cable|pulldown|pushdown|face pull|crunch/i.test(name))o+=line(P.ba,mid);
+  else if(/^band (curls|overhead|lateral)|banded squats|band good/i.test(name))o+=line(s.legs[0][1],mid);
+  if(P.rope){const a=ph*2*Math.PI,cx=s.hip[0],cy=56,tx=cx+16*Math.sin(a),ty=cy+60*Math.cos(a),c=[mid[0]+2*(tx-mid[0]),mid[1]+2*(ty-mid[1])];
+    o+='<path class="strap" d="M'+f1(hand(0)[0])+' '+f1(hand(0)[1])+'Q'+f1(c[0])+' '+f1(c[1])+' '+f1(hand(1)[0])+' '+f1(hand(1)[1])+'"/>'}
+  if(P.wheel)o+='<circle class="held" cx="'+f1(mid[0])+'" cy="'+f1(mid[1]+1)+'" r="5"/>';
+  if(P.roller)o+='<circle class="kit" cx="'+P.roller[0]+'" cy="'+P.roller[1]+'" r="7"/>';
+  if(held){const c=(x,y,r)=>'<circle class="held" cx="'+f1(x)+'" cy="'+f1(y)+'" r="'+r+'"/>';
+    if(held.t==='bb'){const at=P.hold==='sh'?[s.sh[0]-2,s.sh[1]-3]:P.hold==='hip'?[s.hip[0]+2,s.hip[1]-7]:hand(0);o+=c(at[0],at[1],9)}
+    else if(held.t==='db'){if(P.hold==='mid'){const a=ahead(0,2);o+=c(a[0],a[1],4.5)}else{[1,0].forEach(i=>{if(i&&held.one)return;const a=ahead(i,1);o+='<g'+(i?' class="far"':'')+'>'+c(a[0],a[1],4)+'</g>'})}}
+    else if(held.t==='kb'){if(P.hold==='hip'){o+=c(s.hip[0]+2,s.hip[1]-6,5)}else{const a=held.one||P.hold==='near'?ahead(0,5):ahead(0,5);o+=c(a[0],a[1],5.5)}}
+    else if(held.t==='ball'){const a=ahead(0,5);o+=c(a[0],a[1],6.5)}}
+  return o}
+/* frame the whole movement: the box every pose fits in, padded, at the panel's shape */
+function dmBox(P,R){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;const add=(x,y,r)=>{r=r||0;x0=Math.min(x0,x-r);x1=Math.max(x1,x+r);y0=Math.min(y0,y-r);y1=Math.max(y1,y+r)};
+  for(let i=0;i<24;i++){const s=dmSkel(dmAt(R,i/24,P.lin));add(s.head[0],s.head[1],8);add(s.hip[0],s.hip[1],4);s.legs.concat(s.arms).forEach(l=>{add(l[0][0],l[0][1],4);add(l[1][0],l[1][1],7)})}
+  (P.pr||[]).forEach(o=>{if(o.x!=null){add(o.x,o.y==null?DG:o.y);if(o.w)add(o.x+o.w,o.y==null?DG:o.y)}if(o.b==='bar')add(o.x,o.y-8)});
+  if(P.roller)add(P.roller[0],P.roller[1],8);add(x0,DG+3);
+  const A=160/136;let w=Math.max(96,x1-x0+16),h=y1-y0+16;if(w/h<A)w=h*A;else h=w/A;
+  return [(x0+x1)/2-w/2,(y0+y1)/2-h/2,w,h].map(f1).join(' ')}
+function dmSVG(box){return '<svg viewBox="'+(box||'0 -14 160 136')+'" role="img"><path class="gnd" d="M-300 '+DG+'H460"/><g class="kitg"></g>'+
+  '<g class="far"><path class="lm" data-l="l1"/><path class="lm" data-l="a1"/></g><path class="tor"/><circle class="hd" r="7"/>'+
+  '<g class="near"><path class="lm" data-l="l0"/><path class="lm" data-l="a0"/></g><g class="dyn"></g></svg>'}
+/* draw one frame of demo P (resolved keys R) at phase ph into svg */
+function dmDraw(svg,P,R,ph,name,held){const s=dmSkel(dmAt(R,ph,P.lin));
+  svg.querySelector('[data-l="l0"]').setAttribute('d',dmPath(s.hip,s.legs[0]));svg.querySelector('[data-l="l1"]').setAttribute('d',dmPath(s.hip,s.legs[1]));
+  svg.querySelector('[data-l="a0"]').setAttribute('d',dmPath(s.sh,s.arms[0]));svg.querySelector('[data-l="a1"]').setAttribute('d',dmPath(s.sh,s.arms[1]));
+  svg.querySelector('.tor').setAttribute('d',dmTorso(s));const h=svg.querySelector('.hd');h.setAttribute('cx',f1(s.head[0]));h.setAttribute('cy',f1(s.head[1]));
+  svg.querySelector('.dyn').innerHTML=dmDyn(P,s,name,held,ph)}
+/* the demo sheet: animates until it closes */
+let dmRun=0,dmBack=null;
+function openDemo(name){if(!name)return;if(dmRun)cancelAnimationFrame(dmRun);dmRun=0;const key=demoKey(name),P=key&&DMO[key],fig=$('dmFig');
+  $('dmName').textContent=name;fig.hidden=!P;fig.innerHTML='';
+  if(P){const R=dmKeys(P);fig.innerHTML=dmSVG(dmBox(P,R));const svg=fig.firstChild,held=dmHeld(name,P),t0=performance.now();let still=false;try{still=matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
+    svg.setAttribute('aria-label','Animated demonstration of '+name);svg.querySelector('.kitg').innerHTML=dmStatic(P);dmDraw(svg,P,R,0,name,held);
+    const step=now=>{if(!dmRun)return;const s=(now-t0)/1000;dmDraw(svg,P,R,still?Math.floor(s/1.5)/R.length:s/P.d,name,held);dmRun=requestAnimationFrame(step)};dmRun=requestAnimationFrame(step)}
+  $('dmMus').innerHTML=musLine(musclesFor(name));const tl=$('dmTips');tl.innerHTML='';
+  (P?P.tips:["No animation for this one yet. The video shows how it's done."]).forEach(t=>{const li=document.createElement('li');li.textContent=t;tl.appendChild(li)});
+  $('dmVid').href='https://www.youtube.com/results?search_query='+encodeURIComponent('how to do '+name.replace(/ · /g,' ')+' exercise');
+  if($('demo').hidden)dmBack=document.activeElement;$('demo').hidden=false;$('dmClose').focus()}
+function closeDemo(){if($('demo').hidden)return;$('demo').hidden=true;if(dmRun)cancelAnimationFrame(dmRun);dmRun=0;$('dmFig').innerHTML='';if(dmBack&&dmBack.focus)dmBack.focus();dmBack=null}
 function todayInfo(){const d=new Date(),dow=d.getDay(),key=d.toDateString(),ov=!!tov&&tov.date===key,cfg={...(ov?tov:week[dow]),dur:SET.dur};return{d,dow,key,cfg,ov,F:FOCI[cfg.f]}}
 function loadWeek(){try{const w=JSON.parse(localStorage.getItem('pacemix-week')||'null');if(w)for(let d=0;d<7;d++)if(w[d]!=null)week[d]=normDay(w[d]);
   const sh=JSON.parse(localStorage.getItem('pacemix-shuffle')||'null');if(sh)shuf=sh;
@@ -1121,7 +1434,7 @@ function renderToday(){const {dow,key,cfg,ov,F}=todayInfo(),items=curSetup().ite
   const cOn=cfg.types.includes('cardio');$('tdCardio').hidden=!cOn;
   if(cOn){const opts=cardioOpts(items),ms=$('tdMach');$('tdCs').value=cfg.cs||(cfg.types.length===1?'steady':'int');
     ms.innerHTML='<option value="any">Any available</option>'+opts.map(k=>'<option value="'+k+'">'+CARDIO[k][0]+'</option>').join('');ms.value=cfg.m&&opts.includes(cfg.m)?cfg.m:'any'}
-  ['tdList','tdGo','tdShuffle','tdCustom'].forEach(id=>{$(id).hidden=rest});
+  ['tdList','tdHint','tdGo','tdShuffle','tdCustom'].forEach(id=>{$(id).hidden=rest});
   if(rest){todayW=null;$('tdBody').hidden=true;$('tdDet').textContent=F.det+' Pick a training type to work out anyway.';return}
   const n=shuf.date===key?shuf.n:0;todayW=genWorkout(cfg,[key,cfg.f,cfg.types.join('+'),cfg.cs||'',cfg.m||'',cfg.dur,[...items].sort().join(','),n].join('|'));
   $('tdDet').textContent=F.det+' · '+curSetup().name+' · '+Math.round(wTotal(todayW)/60)+' min';$('tdGo').textContent="Load today's workout";
@@ -1131,7 +1444,8 @@ function renderToday(){const {dow,key,cfg,ov,F}=todayInfo(),items=curSetup().ite
   todayW.blocks.forEach(b=>{if(!b.ty||b.t==='rest')return;
     if(b.ty!==ty){ty=b.ty;row=null;const h=document.createElement('li');h.className='td-sec';h.textContent=TYPES[ty].name;tl.appendChild(h)}
     if(b.grp&&row&&row.grp===b.grp){row.d+=b.d;row.em.textContent=fmt(row.d);return}
-    const li=document.createElement('li');li.innerHTML='<span></span><em></em>';li.querySelector('span').textContent=b.grp||b.name;const em=li.querySelector('em');
+    const li=document.createElement('li'),nm=b.grp||b.name;li.innerHTML='<button type="button" class="td-ex"><span></span><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M6.5 5.5v5l4-2.5z"/></svg></button><em></em>';
+    li.querySelector('span').textContent=nm;const bt=li.querySelector('button');bt.setAttribute('aria-label','How to do '+nm);bt.onclick=()=>openDemo(b.name);const em=li.querySelector('em');
     em.textContent=b.t==='int'?b.rounds+' × '+fmt(b.w):fmt(b.d);row=b.grp?{grp:b.grp,d:b.d,em}:null;tl.appendChild(li)})}
 function loadToday(){if(todayW)selectStation(customStation(todayW))}
 function renderWeekEd(focus){const box=$('weekEd'),today=new Date().getDay();box.innerHTML='';
@@ -1235,10 +1549,10 @@ function stepLog(k){const inp=k[0]==='w'?$('logW'):$('logR'),st=k[0]==='w'?(SET.
 function openGym(){$('gym').hidden=false;$('gLogSlot').appendChild($('logPanel'));try{document.documentElement.requestFullscreen?.().catch(()=>{})}catch(e){}updateGym();$('gDone').focus()}
 function closeGym(){$('gym').hidden=true;$('logHome').appendChild($('logPanel'));try{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}catch(e){}}
 function updateGym(){if($('gym').hidden)return;const st=S.state,el=curPos();$('gStation').textContent=cur.name;$('gClock').textContent=el>=0?fmt(el)+' / '+fmt(plan.total):fmt(plan.total);
-  if(el>=0&&el<plan.total){const p=planAt(el),nx=plan.segs[p.idx+1];$('gBody').hidden=!showMuscles($('gBody'),p.seg,nx);$('gLabel').textContent=p.seg.ex||p.seg.label;$('gSetOf').textContent=p.seg.ex&&p.seg.sets>1?'Set '+p.seg.setNo+' of '+p.seg.sets:p.seg.kind==='rest'?'Rest':'Now';
+  if(el>=0&&el<plan.total){const p=planAt(el),nx=plan.segs[p.idx+1];$('gBody').hidden=!showMuscles($('gBody'),p.seg,nx);$('gHow').hidden=$('gBody').hidden;$('gLabel').textContent=p.seg.ex||p.seg.label;$('gSetOf').textContent=p.seg.ex&&p.seg.sets>1?'Set '+p.seg.setNo+' of '+p.seg.sets:p.seg.kind==='rest'?'Rest':'Now';
     $('gCount').textContent=$('segCount').textContent;$('gCount').classList.toggle('over',$('segCount').classList.contains('over'));$('gCue').textContent=$('cueText').textContent;
     $('gNext').textContent=nx?'Next: '+(nx.ex?nx.ex+(nx.sets>1?' '+nx.setNo+'/'+nx.sets:''):nx.label)+' · '+fmt(nx.t1-nx.t0):'Last part';$('gDone').textContent=st==='paused'?'Resume':doneLabel(p)}
-  else{$('gBody').hidden=true;$('gLabel').textContent=st==='done'?'Workout done':cur.name;$('gSetOf').textContent=st==='done'?'Nice work':'Ready';$('gCount').textContent=fmt(plan.total);$('gCount').classList.remove('over');$('gCue').textContent=st==='done'?'Your session is saved to your progress.':'Press Start when you are ready.';$('gNext').textContent='';$('gDone').textContent=st==='done'?'Start again':'Start workout'}
+  else{$('gBody').hidden=true;$('gHow').hidden=true;$('gLabel').textContent=st==='done'?'Workout done':cur.name;$('gSetOf').textContent=st==='done'?'Nice work':'Ready';$('gCount').textContent=fmt(plan.total);$('gCount').classList.remove('over');$('gCue').textContent=st==='done'?'Your session is saved to your progress.':'Press Start when you are ready.';$('gNext').textContent='';$('gDone').textContent=st==='done'?'Start again':'Start workout'}
   $('gPause').textContent=st==='playing'?'Pause':'Resume';$('gPause').hidden=!(st==='playing'||st==='paused');$('gSkip').textContent=mode==='songs'?'Next song':'Next mix'}
 
 /* per-frame training logic, called from loop() while playing */
@@ -1268,7 +1582,9 @@ function initTraining(){loadSet();loadHist();
   $('doneBtn').onclick=advance;$('gymBtn').onclick=openGym;$('gClose').onclick=closeGym;
   $('gDone').onclick=()=>{if(S.state==='playing')advance();else $('play').click()};
   $('gPause').onclick=()=>$('play').click();$('gSkip').onclick=()=>$('skip').click();
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('gym').hidden)closeGym()});
+  $('exHow').onclick=()=>openDemo($('exBody')._k);$('gHow').onclick=()=>openDemo($('gBody')._k);
+  $('dmClose').onclick=closeDemo;$('demo').onclick=e=>{if(e.target===$('demo'))closeDemo()};
+  document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(!$('demo').hidden)closeDemo();else if(!$('gym').hidden)closeGym()});
   renderProgress()}
 
 /* ---------- phone shell: tabs + mini player ---------- */
