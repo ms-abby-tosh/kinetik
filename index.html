@@ -344,7 +344,7 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
         <div class="bmap td-bmap" id="tdBody" hidden></div>
         <div class="setup-row"><label class="field">Setup <select id="equip"></select></label><button class="linkish" id="setupEdit" aria-expanded="false">Edit equipment</button></div>
         <div id="setupEd" class="setup-ed" hidden></div>
-        <div class="setup-row"><label class="field">Focus <select id="tdFocusSel"></select></label><label class="field">Length <select id="tdDur"><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option></select></label></div>
+        <div class="setup-row"><label class="field">Focus <select id="tdFocusSel"></select></label><label class="field">Length <select id="tdDur"><option value="15">15 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option></select></label></div>
         <div class="chips" id="tdTypes" role="group" aria-label="Training types, up to 3"></div>
         <div class="setup-row" id="tdCardio" hidden><label class="field">Cardio <select id="tdCs"><option value="steady">Steady</option><option value="int">Intervals</option></select></label><label class="field">On <select id="tdMach"></select></label></div>
         <p class="bk-note" id="tdOv" hidden>Changed for today only. <button class="linkish" id="tdReset">Back to my week plan</button></p>
@@ -1006,7 +1006,7 @@ const FOCI={upper:{name:'Upper body',det:'Chest, shoulders and arms',tag:'u',g:[
 /* w = share of the main time; TYPE_KEYS is display order, TYPE_ORDER is the order blocks run in */
 const TYPES={strength:{name:'Strength',w:1.6},endurance:{name:'Endurance',w:1.1},cardio:{name:'Cardio',w:1},hiit:{name:'HIIT',w:.8},functional:{name:'Functional',w:1.1},agility:{name:'Agility',w:.8},mobility:{name:'Mobility',w:.8}};
 const TYPE_KEYS=Object.keys(TYPES),TYPE_ORDER=['agility','strength','functional','endurance','cardio','hiit','mobility'];
-const WARMCOOL={30:[300,300],45:[420,420],60:[480,600]};
+const WARMCOOL={15:[120,90],30:[300,300],45:[420,420],60:[480,600]};
 const DEF_WEEK={0:{f:'full',types:['mobility']},1:{f:'upper',types:['strength','functional']},2:{f:'lower',types:['strength','agility']},3:{f:'full',types:['hiit','cardio']},
   4:{f:'back',types:['strength','endurance']},5:{f:'full',types:['functional','agility','cardio']},6:{f:'full',types:['cardio'],cs:'steady'}};
 /* week plans saved before training types existed */
@@ -1039,7 +1039,7 @@ function genWorkout(cfg,seed){const F=FOCI[cfg.f],r=rng(hashStr(seed)),items=cur
   const big=['chest','back','legs','posterior','shoulders'];
   let machine=null;
   const B={
-    strength:bud=>sets(bud,k=>k<F.g.length*2?lift(F.g[k%F.g.length],k<2&&big.includes(F.g[k])):null,(x,k)=>{const heavy=x[1]&&k<2;return[heavy?4:3,x[1]?60:45,heavy?90:x[1]?75:60]},0,0,45,.85,92,'Set','Set up next'),
+    strength:bud=>sets(bud,k=>k<F.g.length*2?lift(F.g[k%F.g.length],k<2&&big.includes(F.g[k])):null,(x,k)=>{const heavy=x[1]&&k<2&&dur>15;return[heavy?4:3,x[1]?60:45,heavy?90:x[1]?75:60]},0,0,45,.85,92,'Set','Set up next'),
     endurance:bud=>sets(bud,k=>lift(F.g[k%F.g.length],false),3,45,30,30,.75,120,'Set','Set up next'),
     functional:bud=>sets(bud,()=>take(FUNC,e=>fits(e[2])),3,40,20,30,.85,124,'Round','Set up next'),
     agility:bud=>sets(bud,k=>take(AGI,e=>k%2?!e[1]:!!e[1]),4,20,40,30,1,132,'Round','Set up next'),
@@ -1060,7 +1060,7 @@ function genWorkout(cfg,seed){const F=FOCI[cfg.f],r=rng(hashStr(seed)),items=cur
   const fast=types.some(k=>k==='agility'||k==='hiit'),w1=Math.round(wu*.4);
   const blocks=[{t:'warm',name:'Joint circles',d:w1,e:.4,bpm:108},{t:'warm',name:fast?'Dynamic warm-up · skips and shuffles':'Dynamic warm-up',d:wu-w1,e:.55,bpm:116}];
   types.forEach(k=>{const bl=B[k](main*TYPES[k].w/wsum);if(!bl.length)return;bl.forEach(b=>{b.ty=k});
-    blocks.push({t:'rest',name:'Next up: '+TYPES[k].name,d:45,e:.35,bpm:bl[0].bpm},...bl)});
+    blocks.push({t:'rest',name:'Next up: '+TYPES[k].name,d:dur<30?15:45,e:.35,bpm:bl[0].bpm},...bl)});
   /* cool-down: alternate foam rolling (if you have a roller) with stretches for today's focus */
   let ct=0,n=0;const roll=items.includes('roller');
   while(cd-ct>=45){const x=(roll&&n%2===0&&take(ROLL,e=>fits(e[2])))||take(STRETCH,e=>fits(e[2]));if(!x)break;const d=Math.min(60,cd-ct);
@@ -1479,7 +1479,7 @@ function loadSet(){try{Object.assign(SET,JSON.parse(localStorage.getItem('pacemi
   if(!SET.setups.length)SET.setups=JSON.parse(JSON.stringify(DEF_SETUPS));
   if(SET.equip){SET.setup={gym:'gym',bw:'bw'}[SET.equip]||'home';delete SET.equip}  /* old single Equipment menu */
   if(!SET.setups.some(s=>s.id===SET.setup))SET.setup=SET.setups[0].id;
-  if(![30,45,60].includes(SET.dur))SET.dur=45}
+  if(![15,30,45,60].includes(SET.dur))SET.dur=45}
 function renderSetupSel(){const sel=$('equip');sel.innerHTML='';SET.setups.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;sel.appendChild(o)});sel.value=SET.setup}
 function setupChanged(){saveSet();renderToday();if(cur.id==='today')loadToday()}
 function renderSetupEd(){const box=$('setupEd'),s=curSetup();box.innerHTML='';
