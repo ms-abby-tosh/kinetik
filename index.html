@@ -254,6 +254,20 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
 .demo-fig .held{fill:var(--amber)}
 .demo-fig .far .held{opacity:.6}
 .demo-fig .strap{fill:none;stroke:var(--amber);stroke-width:1.2}
+/* 3D demo: canvas plus coaching, tempo and muscle labels drawn over it */
+.demo-fig.d3{position:relative;min-width:0;aspect-ratio:1/1;max-height:54vh;overflow:hidden;background:radial-gradient(120% 90% at 50% 35%,#2a2338 0%,var(--bg) 72%)}
+.d3c{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.d3ov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.d3ov line{stroke:var(--amber);stroke-width:1.2;opacity:.85}.d3ov circle{fill:var(--amber)}
+.d3ov text{font:700 11px var(--f-body);letter-spacing:.08em;fill:var(--amber);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
+.d3co{position:absolute;left:12px;top:10px;display:grid;gap:2px;pointer-events:none}
+.d3co b{font-family:var(--f-display);font-weight:900;font-size:24px;letter-spacing:.04em;line-height:1;min-height:24px}
+.d3co span{font-size:12px;color:var(--amber);min-height:16px}
+.d3co i{display:block;width:64px;height:3px;border-radius:2px;background:#ffffff22;overflow:hidden;margin-top:3px}
+.d3co u{display:block;height:100%;width:0;background:var(--amber)}
+.d3tp{position:absolute;right:12px;top:12px;font-size:11px;color:var(--muted);letter-spacing:.06em;pointer-events:none}
+.d3hint{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:11px;color:var(--muted);pointer-events:none}
+.demo-btns{display:flex;gap:8px;flex:none}
 .demo-tips{margin:0;padding-left:20px;display:grid;gap:6px;font-size:15px;line-height:1.4}
 .demo-vid{text-decoration:none;justify-self:start}
 .gym{position:fixed;inset:0;z-index:60;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;gap:14px;overflow:auto;
@@ -515,7 +529,7 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
 </div>
 <div class="demo" id="demo" hidden role="dialog" aria-modal="true" aria-labelledby="dmName">
   <div class="demo-card">
-    <div class="demo-top"><h2 id="dmName">Exercise</h2><button class="btn" id="dmClose" type="button">Close</button></div>
+    <div class="demo-top"><h2 id="dmName">Exercise</h2><div class="demo-btns"><button class="btn" id="dm3" type="button" hidden>2D view</button><button class="btn" id="dmClose" type="button">Close</button></div></div>
     <div class="demo-fig" id="dmFig"></div>
     <p class="ex-mus" id="dmMus"></p>
     <ol class="demo-tips" id="dmTips"></ol>
@@ -1242,8 +1256,8 @@ const DMO={
   skull:{d:2.6,k:[{p:[48,90],t:90,F:[[34,114],[30,114]],k:-1,H:[[78,57],[76,57]],e:1},{H:[[94,74],[92,74]]}],pr:[{b:'bench',x:24,w:72,y:96}],tips:['Arms straight up over your shoulders','Bend only at the elbows to lower toward your forehead','Elbows stay pointing up; extend back to start']},
   pullover:{d:3,k:[{p:[48,90],t:90,F:[[34,114],[30,114]],k:-1,H:[[78,57],[76,57]],e:1},{H:[[110,82],[108,82]]}],hold:'mid',pr:[{b:'bench',x:24,w:72,y:96}],tips:['Hold the weight over your chest, elbows soft','Lower it back behind your head in an arc','Pull it back over your chest using your lats']},
   thrust:{d:2.4,k:[{p:[70,104],t:70,F:[[46,114],[42,114]],k:-1,Hr:[[-6,8],[-8,8]]},{p:[70,88],t:96}],hold:'hip',pr:[{b:'bench',x:92,w:44,y:96}],tips:['Upper back on the bench, feet flat','Drive your hips up until knees, hips and shoulders line up','Squeeze your glutes at the top, chin tucked']},
-  bridge:{d:2.4,k:[{p:[70,107],t:90,F:[[46,114],[42,114]],k:-1,H:[[86,113],[84,113]]},{p:[70,91],t:120}],hold:'hip',tips:['Lie on your back, feet flat near your hips','Push through your heels and lift your hips','Squeeze your glutes at the top, ribs down']},
-  bridge1:{d:2.4,k:[{p:[70,107],t:90,F:[[46,114],[36,70]],k:-1,H:[[86,113],[84,113]]},{p:[70,91],t:120,F:[[46,114],[30,60]]}],tips:['One foot planted, other leg straight up','Drive through the planted heel to lift your hips','Keep your hips level; don\'t let one side drop']},
+  bridge:{d:2.4,k:[{p:[70,107],t:90,F:[[46,114],[42,114]],k:-1,H:[[70,113],[68,113]]},{p:[70,91],t:120,hd:-30}],hold:'hip',tips:['Lie on your back, feet flat near your hips','Push through your heels and lift your hips','Squeeze your glutes at the top, ribs down']},
+  bridge1:{d:2.4,k:[{p:[70,107],t:90,F:[[46,114],[36,70]],k:-1,H:[[70,113],[68,113]]},{p:[70,91],t:120,hd:-30,F:[[46,114],[30,60]]}],tips:['One foot planted, other leg straight up','Drive through the planted heel to lift your hips','Keep your hips level; don\'t let one side drop']},
   press:{d:2.4,k:[{...DST,Hr:[[7,-1],[5,-1]]},{Hr:[[2,-33],[0,-33]],e:1}],tips:['Weights at your shoulders, core braced','Press straight up until your arms lock out','Don\'t lean back; lower with control']},
   pushpress:{d:2,k:[{...DST,Hr:[[7,-1],[5,-1]]},{p:[68,72],t:2},{p:[70,66],t:0,Hr:[[2,-33],[0,-33]],e:1}],tips:['Weight at your shoulder','Quick dip at the knees, then drive up with your legs','Use that drive to press overhead and lock out']},
   halo:{d:2.4,lin:1,k:circ(8,a=>({...DST,Hr:[[2+11*Math.cos(a),-14+5*Math.sin(a)],[0+11*Math.cos(a),-14+5*Math.sin(a)]],e:1})),hold:'mid',tips:['Hold the bell upside down by the horns','Circle it slowly around your head, close to your neck','Keep your ribs down and change direction each set']},
@@ -1460,6 +1474,7 @@ function dmDraw(svg,P,R,ph,name,held){const s=dmSkel(dmAt(R,ph,P.lin));
 /* the demo sheet: animates until it closes */
 let dmRun=0,dmBack=null;
 function openDemo(name){if(!name)return;if(dmRun)cancelAnimationFrame(dmRun);dmRun=0;const key=demoKey(name),P=key&&DMO[key],fig=$('dmFig');
+  if(window.Demo3D)Demo3D.close();fig.classList.remove('d3');
   $('dmName').textContent=name;fig.hidden=!P;fig.innerHTML='';
   if(P){const R=dmKeys(P);fig.innerHTML=dmSVG(dmBox(P,R));const svg=fig.firstChild,held=dmHeld(name,P),t0=performance.now();let still=false;try{still=matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
     svg.setAttribute('aria-label','Animated demonstration of '+name);svg.querySelector('.kitg').innerHTML=dmStatic(P);dmDraw(svg,P,R,0,name,held);
@@ -1467,8 +1482,16 @@ function openDemo(name){if(!name)return;if(dmRun)cancelAnimationFrame(dmRun);dmR
   $('dmMus').innerHTML=musLine(musclesFor(name));const tl=$('dmTips');tl.innerHTML='';
   (P?P.tips:["No animation for this one yet. The video shows how it's done."]).forEach(t=>{const li=document.createElement('li');li.textContent=t;tl.appendChild(li)});
   $('dmVid').href='https://www.youtube.com/results?search_query='+encodeURIComponent('how to do '+name.replace(/ · /g,' ')+' exercise');
-  if($('demo').hidden)dmBack=document.activeElement;$('demo').hidden=false;$('dmClose').focus()}
-function closeDemo(){if($('demo').hidden)return;$('demo').hidden=true;if(dmRun)cancelAnimationFrame(dmRun);dmRun=0;$('dmFig').innerHTML='';if(dmBack&&dmBack.focus)dmBack.focus();dmBack=null}
+  if($('demo').hidden)dmBack=document.activeElement;$('demo').hidden=false;$('dmClose').focus();dmTry3D(name,P)}
+/* the 3D figure: three.js and demo3d.js load the first time a demo opens; the 2D figure shows until then, and stays without WebGL */
+let d3Load=null,d3Ok=null;
+function can3D(){if(d3Ok==null){try{const c=document.createElement('canvas');d3Ok=!!(window.WebGLRenderingContext&&(c.getContext('webgl')||c.getContext('experimental-webgl')))}catch(e){d3Ok=false}}return d3Ok}
+function load3D(){if(!d3Load)d3Load=new Promise((ok,no)=>{const add=(src,next)=>{const s=document.createElement('script');s.src=src;s.onload=next;s.onerror=()=>{d3Load=null;no()};document.head.appendChild(s)};
+  add('vendor/three.min.js',()=>add('demo3d.js',()=>window.Demo3D?ok():no()))});return d3Load}
+function dmTry3D(name,P){const b=$('dm3'),on=!!P&&can3D();b.hidden=!on;b.textContent=SET.d2?'3D view':'2D view';if(!on||SET.d2)return;
+  load3D().then(()=>{if($('demo').hidden||$('dmName').textContent!==name)return;if(dmRun)cancelAnimationFrame(dmRun);dmRun=0;
+    Demo3D.open($('dmFig'),name,P,{dmKeys,dmAt,dmSkel,DG,DMO,dmHeld,musclesFor,MUS_NAME})}).catch(()=>{b.hidden=true})}
+function closeDemo(){if($('demo').hidden)return;$('demo').hidden=true;if(dmRun)cancelAnimationFrame(dmRun);dmRun=0;if(window.Demo3D)Demo3D.close();$('dmFig').classList.remove('d3');$('dmFig').innerHTML='';if(dmBack&&dmBack.focus)dmBack.focus();dmBack=null}
 function todayInfo(){const d=new Date(),dow=d.getDay(),key=d.toDateString(),ov=!!tov&&tov.date===key,cfg={...(ov?tov:week[dow]),dur:SET.dur,lvl:SET.lvl};return{d,dow,key,cfg,ov,F:FOCI[cfg.f]}}
 function loadWeek(){try{const w=JSON.parse(localStorage.getItem('pacemix-week')||'null');if(w)for(let d=0;d<7;d++)if(w[d]!=null)week[d]=normDay(w[d]);
   const sh=JSON.parse(localStorage.getItem('pacemix-shuffle')||'null');if(sh)shuf=sh;
@@ -1535,7 +1558,7 @@ function loadSet(){try{Object.assign(SET,JSON.parse(localStorage.getItem('pacemi
   if(!SET.setups.length)SET.setups=JSON.parse(JSON.stringify(DEF_SETUPS));
   if(SET.equip){SET.setup={gym:'gym',bw:'bw'}[SET.equip]||'home';delete SET.equip}  /* old single Equipment menu */
   if(!SET.setups.some(s=>s.id===SET.setup))SET.setup=SET.setups[0].id;
-  if(![15,30,45,60].includes(SET.dur))SET.dur=45;if(![1,2,3].includes(SET.lvl))SET.lvl=2;SET.tdOpen=!!SET.tdOpen}
+  if(![15,30,45,60].includes(SET.dur))SET.dur=45;if(![1,2,3].includes(SET.lvl))SET.lvl=2;SET.tdOpen=!!SET.tdOpen;SET.d2=!!SET.d2}
 function renderSetupSel(){const sel=$('equip');sel.innerHTML='';SET.setups.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;sel.appendChild(o)});sel.value=SET.setup}
 function setupChanged(){saveSet();renderToday();if(cur.id==='today')loadToday()}
 function renderSetupEd(){const box=$('setupEd'),s=curSetup();box.innerHTML='';
@@ -1639,7 +1662,7 @@ function initTraining(){loadSet();loadHist();
   $('gDone').onclick=()=>{if(S.state==='playing')advance();else $('play').click()};
   $('gPause').onclick=()=>$('play').click();$('gSkip').onclick=()=>$('skip').click();
   $('exHow').onclick=()=>openDemo($('exBody')._k);$('gHow').onclick=()=>openDemo($('gBody')._k);
-  $('dmClose').onclick=closeDemo;$('demo').onclick=e=>{if(e.target===$('demo'))closeDemo()};
+  $('dmClose').onclick=closeDemo;$('dm3').onclick=()=>{SET.d2=!SET.d2;saveSet();openDemo($('dmName').textContent);$('dm3').focus()};$('demo').onclick=e=>{if(e.target===$('demo'))closeDemo()};
   document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(!$('demo').hidden)closeDemo();else if(!$('gym').hidden)closeGym()});
   renderProgress()}
 

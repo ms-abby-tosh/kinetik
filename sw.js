@@ -1,7 +1,7 @@
 // Kinetik service worker: lets the app open offline and load fast.
 // Bump VERSION whenever you publish changes so phones pick up the new files.
-const VERSION = 'kinetik-v11';
-const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png'];
+const VERSION = 'kinetik-v12';
+const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'demo3d.js', 'vendor/three.min.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -20,7 +20,7 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(req).then(res => { const copy = res.clone(); caches.open(VERSION).then(c => c.put('index.html', copy)); return res; }).catch(() => caches.match('index.html')));
     return;
   }
-  // Everything else (icons, Google Fonts): cache first, then network.
+  // Everything else (icons, the 3D demo scripts, Google Fonts): cache first, then network.
   e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => {
     if (res.ok && (url.origin === location.origin || url.hostname.endsWith('gstatic.com') || url.hostname.endsWith('googleapis.com'))) {
       const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy));
