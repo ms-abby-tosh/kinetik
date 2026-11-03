@@ -21,7 +21,7 @@ let G=null; // built once
 
 function fiberTex(){const c=document.createElement('canvas');c.width=128;c.height=128;const g=c.getContext('2d');
   g.fillStyle='#fff';g.fillRect(0,0,128,128);
-  for(let x=0;x<128;x+=2){g.fillStyle='rgba(60,30,20,'+(Math.random()*.12).toFixed(3)+')';g.fillRect(x,0,1+Math.random()*1.5,128)}
+  for(let x=0;x<128;x+=2){g.fillStyle=Math.random()<.3?'rgba(255,220,210,'+(Math.random()*.16).toFixed(3)+')':'rgba(40,0,0,'+(Math.random()*.3).toFixed(3)+')';g.fillRect(x,0,1+Math.random()*1.5,128)}
   const t=new W.CanvasTexture(c);t.wrapS=t.wrapT=W.RepeatWrapping;t.repeat.set(4,1);t.encoding=W.sRGBEncoding;return t}
 
 function build(){
@@ -46,12 +46,12 @@ function build(){
   const hairM=new W.MeshStandardMaterial({color:0x3a2c2a,roughness:.9});
   const metal=new W.MeshStandardMaterial({color:0x34343c,metalness:.55,roughness:.35});
   const kitM=new W.MeshStandardMaterial({color:0x4a4160,roughness:.75});
-  const C={idle:new W.Color(0xd7a191),main:new W.Color(0xffa83a),also:new W.Color(0xf07f3a),emi:new W.Color(0xff8a1c)};
+  const C={idle:new W.Color(0x7c1d22),main:new W.Color(0xffa83a),also:new W.Color(0xf07f3a),emi:new W.Color(0xff8a1c)};
   const mats={},mus={},halo={};
   const GLOW=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),r=g.createRadialGradient(64,64,0,64,64,64);
     r.addColorStop(0,'rgba(255,190,90,1)');r.addColorStop(.4,'rgba(255,160,50,.4)');r.addColorStop(1,'rgba(255,140,40,0)');g.fillStyle=r;g.fillRect(0,0,128,128);return new W.CanvasTexture(c)})();
   ['chest','delts','biceps','triceps','forearms','abs','obliques','quads','adductors','calves','traps','upperback','lats','lowerback','glutes','hamstrings'].forEach(k=>{
-    mats[k]=new W.MeshStandardMaterial({color:C.idle.clone(),roughness:.6,map:FIB,emissive:C.emi.clone(),emissiveIntensity:0});mus[k]=[];halo[k]=[]});
+    mats[k]=new W.MeshStandardMaterial({color:C.idle.clone(),roughness:.42,map:FIB,emissive:C.emi.clone(),emissiveIntensity:0});mus[k]=[];halo[k]=[]});
   const SPH=new W.SphereGeometry(1,32,24),bodyMeshes=[];
   const ell=(p,g,pos,sc,rot,mat)=>{const m=new W.Mesh(SPH,mat||(g?mats[g]:skin));m.position.set(pos[0],pos[1],pos[2]);m.scale.set(sc[0],sc[1],sc[2]);if(rot)m.rotation.set(rot[0],rot[1],rot[2]);
     m.castShadow=true;p.add(m);
@@ -180,6 +180,7 @@ function buildKit(P){
 function heldMesh(h){if(!h)return null;const g=new W.Group(),m=G.metal;
   if(h.t==='bb'){const bar=new W.Mesh(new W.CylinderGeometry(.014,.014,1.5,12),m);bar.rotation.z=PI/2;g.add(bar);
     for(const x of[-.6,.6]){const pl=new W.Mesh(new W.CylinderGeometry(.16,.16,.05,28),m);pl.rotation.z=PI/2;pl.position.x=x;pl.castShadow=true;g.add(pl)}}
+  else if(h.t==='db'){const hdl=new W.Mesh(new W.CylinderGeometry(.014,.014,.2,12),m);hdl.rotation.z=PI/2;g.add(hdl);for(const x of[-.09,.09]){const pl=new W.Mesh(new W.CylinderGeometry(.06,.06,.04,20),m);pl.rotation.z=PI/2;pl.position.x=x;pl.castShadow=true;g.add(pl)}}
   else if(h.t==='kb'){const b=new W.Mesh(new W.SphereGeometry(.085,24,18),m);b.castShadow=true;g.add(b);const hd=new W.Mesh(new W.TorusGeometry(.05,.012,10,24,PI),m);hd.position.y=.06;g.add(hd)}
   else if(h.t==='ball'){const b=new W.Mesh(new W.SphereGeometry(.12,28,20),new W.MeshStandardMaterial({color:0x6b4f9a,roughness:.6}));b.castShadow=true;g.add(b)}
   else return null;G.kit.add(g);return g}
@@ -214,7 +215,7 @@ function pose(e){const R=D.R,q=A.dmAt(R,e,D.P.lin||(!D.multi&&!D.hold)),s=A.dmSk
   const ahead=(i,d)=>{const h=hand(i),e2=elb(i),L=Math.hypot(h[0]-e2[0],h[1]-e2[1])||1;return[h[0]+(h[0]-e2[0])/L*d,h[1]+(h[1]-e2[1])/L*d]};
   if(D.held&&D.hm){const t=D.held.t,hp=D.P.hold;let at;
     if(t==='bb')at=hp==='sh'?[s.sh[0]-2,s.sh[1]-3]:hp==='hip'?[s.hip[0]+2,s.hip[1]-7]:hand(0);
-    else if(t==='kb')at=hp==='hip'?[s.hip[0]+2,s.hip[1]-6]:ahead(0,5);
+    else if(t==='kb'||t==='db')at=hp==='hip'?[s.hip[0]+2,s.hip[1]-6]:ahead(0,5);
     else at=ahead(0,5);
     D.hm.position.copy(M(at));if(t==='kb'&&D.hm.position.y<.09)D.hm.position.y=.09;if(t==='ball'&&D.hm.position.y<.12)D.hm.position.y=.12}
   const arr=G.strap.geometry.attributes.position.array;let nseg=0;
@@ -280,7 +281,7 @@ function open(el,name,P,api){close();A=api;if(!G)build();
     latA:LAT_ARMS.test(name),latL:LAT_LEGS.test(name)};
   G.cv.setAttribute('role','img');G.cv.setAttribute('aria-label','3D demonstration of '+name+(m.p.length?', working '+m.p.map(k=>A.MUS_NAME[k]).join(' and '):''));
   buildKit(P);D.held=A.dmHeld(name,P);D.hm=null;
-  const db=D.held&&D.held.t==='db';G.B.db.forEach((d,i)=>{d.visible=db&&!(i===1&&(D.held.one||P.hold==='mid'))});
+  const db=D.held&&D.held.t==='db'&&P.hold!=='hip';G.B.db.forEach((d,i)=>{d.visible=!!db&&!(i===1&&(D.held.one||P.hold==='mid'))});
   if(D.held&&!db)D.hm=heldMesh(D.held);
   for(const g in G.halo){const on=m.p.includes(g);for(const h of G.halo[g])h.visible=on}
   D.onR=()=>{resize();frameCam()};addEventListener('resize',D.onR);
