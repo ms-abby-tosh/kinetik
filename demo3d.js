@@ -41,12 +41,12 @@ function build(){
 
   /* materials: a warm matte "clay" figure; muscles the same clay until they work */
   const FIB=fiberTex();
-  const skin=new W.MeshStandardMaterial({color:0xd8c0aa,roughness:.72});
+  const skin=new W.MeshStandardMaterial({color:0x8a6a56,roughness:.7});
   const dark=new W.MeshStandardMaterial({color:0x2c2638,roughness:.8});
   const hairM=new W.MeshStandardMaterial({color:0x3a2c2a,roughness:.9});
   const metal=new W.MeshStandardMaterial({color:0x34343c,metalness:.55,roughness:.35});
   const kitM=new W.MeshStandardMaterial({color:0x4a4160,roughness:.75});
-  const C={idle:new W.Color(0xcfae98),main:new W.Color(0xffa83a),also:new W.Color(0xf2a35e),emi:new W.Color(0xff8a1c)};
+  const C={idle:new W.Color(0xd7a191),main:new W.Color(0xffa83a),also:new W.Color(0xf07f3a),emi:new W.Color(0xff8a1c)};
   const mats={},mus={},halo={};
   const GLOW=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),r=g.createRadialGradient(64,64,0,64,64,64);
     r.addColorStop(0,'rgba(255,190,90,1)');r.addColorStop(.4,'rgba(255,160,50,.4)');r.addColorStop(1,'rgba(255,140,40,0)');g.fillStyle=r;g.fillRect(0,0,128,128);return new W.CanvasTexture(c)})();
@@ -157,6 +157,8 @@ function latBar(p,len,r){const m=new W.Mesh(new W.CylinderGeometry(r||.016,r||.0
 function post(p,x){const top=M(p,x),h=top.y;if(h<=0)return;const m=new W.Mesh(new W.CylinderGeometry(.025,.025,h,12),G.kitM);m.position.set(top.x,h/2,top.z);m.castShadow=true;G.kit.add(m)}
 function disc(p,r){const m=new W.Mesh(new W.CylinderGeometry(r,r,.06,28),G.kitM);m.rotation.z=PI/2;m.position.copy(M(p));m.castShadow=true;G.kit.add(m)}
 function buildKit(P){
+  /* bench and seat spans along the body: feet that land beside them step out to the side */
+  D.benches=(P.pr||[]).filter(o=>o.b==='bench'||o.b==='seat').map(o=>[o.x-4,o.x+(o.b==='seat'?30:o.w)+4]);
   while(G.kit.children.length){const c=G.kit.children.pop();c.geometry&&c.geometry.dispose()}
   (P.pr||[]).forEach(o=>{const b=o.b,x=o.x,y=o.y,w=o.w;
     if(b==='bench'){slab([x,y+1.5],[x+w,y+1.5],.42,.06);slab([x+5,y],[x+5,A.DG],.32,.03);slab([x+w-5,y],[x+w-5,A.DG],.32,.03)}
@@ -191,7 +193,8 @@ function pose(e){const R=D.R,q=A.dmAt(R,e,D.P.lin||(!D.multi&&!D.hold)),s=A.dmSk
   const front=V(0,0,1).applyQuaternion(G.root.quaternion);
   for(let i=0;i<2;i++){const side=i?-1:1;
     /* legs */
-    let T=M(s.legs[i][1],.1*side),K=M(s.legs[i][0],.13*side);T.y+=ANK;
+    const fx=s.legs[i][1][0],wide=s.legs[i][1][1]>A.DG-12&&D.benches.some(r=>fx>r[0]&&fx<r[1]);
+    let T=M(s.legs[i][1],(wide?.33:.1)*side),K=M(s.legs[i][0],(wide?.36:.13)*side);T.y+=ANK;
     if(D.latL){const hp=wp(B.th[i]);const v=T.clone().sub(hp),k=K.clone().sub(hp);
       T=hp.clone().add(V(side*Math.abs(v.z),v.y,0));K=hp.clone().add(V(side*Math.abs(k.z)+.02*side,k.y,.04))}
     const n=ik2(B.th[i],B.sh[i],T,K,1,L_TH,L_SH,front);
