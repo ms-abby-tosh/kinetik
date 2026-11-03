@@ -1018,8 +1018,8 @@ const MOB=[['Cat-cow','','bc'],["World's greatest stretch",'','lf'],['Hip 90/90 
   ['Downward dog to cobra','','cf'],['Ankle rocks','','l'],['Scorpion stretch','','bc'],['Wall slides','','u'],['Leg swings','','l'],['Arm circles','','u'],['Dead hang','pullup','ub']];
 /* Pilates mat moves */
 const PIL=[['The hundred','','c'],['Roll-ups','','c'],['Single-leg circles','','cl'],['Rolling like a ball','','c'],['Single-leg stretch','','c'],['Double-leg stretch','','c'],
-  ['Criss-cross','','c'],['Spine stretch forward','','bc'],['Saw','','bc'],['Swan','','b'],['Swimming','','bcf'],['Shoulder bridge','','lb'],['Toe taps','','c'],['Scissors','','c'],
-  ['Teaser','','c'],['Leg pull front','','cuf']];
+  ['Criss-cross','','c'],['Spine stretch forward','','bc'],['Saw','','bc'],['Swan','','bu'],['Swimming','','bcf'],['Shoulder bridge','','lb'],['Toe taps','','c'],['Scissors','','c'],
+  ['Teaser','','c'],['Leg pull front','','cuf'],['Pilates push-ups','','uc'],['Chest expansion','','ub'],['Leg pull back','','ubl'],['Single-leg kicks','','l']];
 const ROLL=[['Foam roll · quads','roller','l'],['Foam roll · hamstrings','roller','l'],['Foam roll · glutes','roller','lb'],['Foam roll · calves','roller','l'],['Foam roll · upper back','roller','ubc'],['Foam roll · lats','roller','ub']];
 const STRETCH=[['Stretch · hamstrings','','l'],['Stretch · quads','','l'],['Stretch · hip flexors','','lc'],['Stretch · glutes','','lb'],['Stretch · calves','','l'],['Stretch · chest','','u'],['Stretch · shoulders','','u'],
   ['Stretch · triceps','','u'],['Stretch · lats','','ub'],['Spinal twist','','bc'],['Cobra','','c'],["Child's pose",'','f']];
@@ -1037,7 +1037,7 @@ const FOCI={upper:{name:'Upper body',det:'Chest, shoulders and arms',tag:'u',g:[
   rest:{name:'Rest day',det:'Recover today. A walk or a stretch is a bonus.'}};
 /* w = share of the main time; TYPE_KEYS is display order, TYPE_ORDER is the order blocks run in */
 /* move levels: 1 beginner, 3 advanced, anything not listed is 2 (intermediate) */
-const LV1=new Set(['Single-leg circles','Single-leg stretch','Spine stretch forward','Shoulder bridge','Toe taps','Dumbbell bench press','Incline dumbbell press','Cable flyes','Dumbbell flyes','Band chest press','Knee push-ups','Incline push-ups','Wall push-ups',
+const LV1=new Set(['Chest expansion','Single-leg kicks','Single-leg circles','Single-leg stretch','Spine stretch forward','Shoulder bridge','Toe taps','Dumbbell bench press','Incline dumbbell press','Cable flyes','Dumbbell flyes','Band chest press','Knee push-ups','Incline push-ups','Wall push-ups',
   'Dumbbell shoulder press','Lateral raises','Front raises','Band overhead press','Band lateral raises','Band pull-aparts','Knee plank shoulder taps','Kettlebell halos',
   'Rope pushdowns','Overhead dumbbell extension','Dumbbell kickbacks','Band pushdowns','Kettlebell overhead extension','Knee close-grip push-ups',
   'Barbell curls','Cable curls','Preacher curls','Hammer curls','Incline dumbbell curls','Dumbbell curls','Doorframe rows','Kettlebell curls','Kettlebell hammer curls','Kettlebell concentration curls','Band curls',
@@ -1047,7 +1047,7 @@ const LV1=new Set(['Single-leg circles','Single-leg stretch','Spine stretch forw
   'Cable crunches','Dead bugs','Knee plank','Heel taps','Crunches','Band Pallof press',
   "Kettlebell farmer's carry","Dumbbell farmer's carry",'Medicine ball chest passes','Band woodchops','Band squat to row','Band push-pull','TRX squat to row','Step-back burpees','Walkouts','Reverse lunges',
   'Lateral shuffles','High knees','Quick feet','Lateral cone shuffles','Step jacks','Butt kicks','Shadow boxing','Medicine ball slams','Bike sprints','Rower sprints']);
-const LV3=new Set(['Teaser','Leg pull front','Dips','Decline push-ups','Feet-on-bench push-ups','Medicine ball push-ups','BOSU push-ups','Pike push-ups','Diamond push-ups','Chin-ups','Pull-ups','Renegade rows',
+const LV3=new Set(['Teaser','Leg pull front','Leg pull back','Dips','Decline push-ups','Feet-on-bench push-ups','Medicine ball push-ups','BOSU push-ups','Pike push-ups','Diamond push-ups','Chin-ups','Pull-ups','Renegade rows',
   'TRX pistol squats','Hanging leg raises','Ab wheel rollouts','Turkish get-ups','Kettlebell windmills','TRX pikes','TRX body saws','Dumbbell man-makers','TRX atomic push-ups','BOSU burpees',
   'Tuck jumps','Broad jumps','Single-leg hops','BOSU lateral hops','Jumping lunges','Kettlebell snatches','Skipping · double-unders']);
 const lvOf=n=>LV1.has(n)?1:LV3.has(n)?3:2;
@@ -1103,8 +1103,10 @@ function genWorkout(cfg,seed){const F=FOCI[cfg.f],r=rng(hashStr(seed)),items=cur
     mobility:bud=>{const want=Math.max(3,Math.round(bud/60)),list=[];
       while(list.length<want){const x=(list.length<2&&take(ROLL,e=>fits(e[2])))||take(MOB,e=>fits(e[2]));if(!x)break;list.push(x)}
       const d=Math.min(180,Math.max(45,Math.round(bud/Math.max(1,list.length)/15)*15));return list.map(x=>({t:'work',name:x[0],d,e:.4,bpm:100}))},
-    pilates:bud=>{const gap=15,base=L===1?45:60,want=Math.max(3,Math.round((bud+gap)/(base+gap))),list=[];
-      while(list.length<want){const x=take(PIL,e=>fits(e[2]));if(!x)break;list.push(x)}
+    pilates:bud=>{const gap=15,base=L===1?45:60,want=Math.max(3,Math.round((bud+gap)/(base+gap))),list=[],mine=PIL.filter(e=>fits(e[2]));
+      while(list.length<want){const x=take(mine,()=>true);if(!x)break;list.push(x)}
+      if(!list.length){const x=take(PIL,()=>true);if(x)list.push(x)}
+      const n0=list.length;for(let i=0;n0&&list.length<Math.min(want,n0*3);i++)list.push(list[i%n0]);
       const d=Math.min(90,Math.max(45,Math.round((bud-gap*(list.length-1))/Math.max(1,list.length)/15)*15));
       return list.flatMap((x,i)=>[...(i?[{t:'rest',name:'Set up next',d:gap,e:.35,bpm:100}]:[]),{t:'work',name:x[0],d,e:.5,bpm:104}])},
     cardio:bud=>{const opts=cardioOpts(items),mach=CM_KEYS.filter(k=>k!=='rope'&&items.includes(k));
@@ -1164,6 +1166,7 @@ const MUS_RULES=[
   [/^(the hundred|roll-ups|rolling like a ball|single-leg stretch|double-leg stretch|toe taps|scissors|teaser)$/i,['abs'],['obliques']],[/^criss-cross$/i,['obliques'],['abs']],
   [/^single-leg circles$/i,['abs','quads'],['adductors']],[/^spine stretch forward$/i,['hamstrings','lowerback'],['abs']],[/^saw$/i,['obliques'],['hamstrings','lowerback']],
   [/^swan$/i,['lowerback'],['glutes','upperback']],[/^swimming$/i,['lowerback','glutes'],['delts','hamstrings']],[/^shoulder bridge$/i,['glutes'],['hamstrings']],[/^leg pull front$/i,['abs','glutes'],['delts']],
+  [/^pilates push-ups$/i,['chest','triceps'],['abs','delts']],[/^chest expansion$/i,['delts','triceps'],['upperback']],[/^leg pull back$/i,['triceps','glutes'],['hamstrings','delts']],[/^single-leg kicks$/i,['hamstrings'],['glutes']],
   [/bird dog/i,['lowerback','abs'],['glutes','delts']],[/heel tap/i,['obliques'],['abs']],[/wall sit/i,['quads','glutes'],['adductors']],[/walkout/i,['abs','delts'],['chest','hamstrings']],
   [/^(foam roll|stretch) · quads/i,['quads']],[/^(foam roll|stretch) · hamstrings/i,['hamstrings']],[/^(foam roll|stretch) · glutes/i,['glutes']],[/^(foam roll|stretch) · calves/i,['calves']],
   [/^(foam roll|stretch) · upper back/i,['upperback','traps']],[/^(foam roll|stretch) · lats/i,['lats']],[/^stretch · chest/i,['chest'],['delts']],[/^stretch · shoulders/i,['delts']],
@@ -1238,6 +1241,9 @@ const DMO={
   toetap:{d:3.2,flow:1,k:[{...LIE,F:[[36,84],[34,84]],H:[[62,113],[60,113]]},{F:[[36,84],[38,112]]},{F:[[36,84],[34,84]]},{F:[[38,112],[34,84]]}],tips:['Lie on your back, knees bent over your hips','Lower one foot to tap the floor, then bring it back','Keep your back still and pressed down; switch legs']},
   scissor:{d:1.6,flow:1,k:[{...LIE,t:66,c:3,hd:10,k:1,F:[[56,60],[20,98]],H:[[62,66],[60,66]]},{F:[[20,98],[56,60]]}],tips:['Head and shoulders up, legs long','Switch legs like scissors, holding the top leg lightly','Keep your hips still and your back down']},
   teaser:{d:3,flow:1,k:[{p:[60,108],t:-45,c:2,F:[[94,74],[92,74]],k:1,H:[[62,64],[60,64]],e:-1},{t:-60,F:[[98,82],[96,82]],H:[[64,72],[62,72]]}],tips:['Balance in a V: legs up, body leaning back','Reach your arms toward your toes','Lower a little and lift again; bend your knees to make it easier']},
+  chestexp:{d:3,flow:1,k:[{...KN([60,113],0),F:[[37,108],[35,108]],k:1,Hr:[[16,26],[14,26]],e:-1},{Hr:[[-12,28],[-14,28]],hd:-6}],tips:['Kneel tall, arms in front of you, palms back','Press your arms back behind you and hold your breath for a look left and right','Bring the arms forward and breathe out; stay tall']},
+  legpullbk:{d:2.4,flow:1,k:[{p:[60,95],t:-66.6,F:[[104,114],[102,114]],k:1,H:[[34,114],[36,114]],e:-1,hd:10},{F:[[101,71],[102,114]]}],tips:['Sit, hands behind you, and lift into a reverse plank','Kick one straight leg up without dropping your hips','Lower it and switch; elbows soft, not locked']},
+  slkick:{d:2.4,flow:1,k:[{p:[56,108],t:72,F:[[8,110],[6,110]],k:-1,H:[[100,113],[98,113]],e:-1,hd:-10},{F:[[40,86],[6,110]]},{F:[[8,110],[6,110]]},{F:[[8,110],[40,86]]}],tips:['Lie face down, up on your forearms','Kick one heel toward your glutes twice, then switch','Keep your belly lifted and hips pressed down']},
   legpull:{d:2.4,flow:1,k:[PU_U,{F:[[24,112],[8,100]]}],tips:['High plank, body in one long line','Lift one leg without letting your hips move','Lower it and switch legs']},
   /* beginner versions: knees down, hands raised, or a wall or bench to help */
   kneepu:{d:2.4,k:[{...KN([44,113],58),F:[[22,104],[20,104]],k:1,H:[[92,114],[90,114]],e:-1,hd:-8},KN([44,113],78)],tips:['Knees down, hands under your shoulders','Straight line from your knees to your head','Lower your chest, then push the floor away']},
@@ -1396,6 +1402,7 @@ const DMO_RULES=[
   [/^the hundred$/i,'hundred'],[/^roll-ups$/i,'rollup'],[/^single-leg circles$/i,'legcircle'],[/^rolling like a ball$/i,'rollball'],[/^single-leg stretch$/i,'slstretch'],
   [/^double-leg stretch$/i,'dlstretch'],[/^criss-cross$/i,'bicycle'],[/^spine stretch forward$/i,'spinefwd'],[/^saw$/i,'saw'],[/^swan$/i,'cobra'],[/^swimming$/i,'swim'],
   [/^shoulder bridge$/i,'bridge'],[/^toe taps$/i,'toetap'],[/^scissors$/i,'scissor'],[/^teaser$/i,'teaser'],[/^leg pull front$/i,'legpull'],
+  [/^pilates push-ups$/i,'inchworm'],[/^chest expansion$/i,'chestexp'],[/^leg pull back$/i,'legpullbk'],[/^single-leg kicks$/i,'slkick'],
   [/knee plank shoulder tap/i,'kneetaps'],[/knee plank/i,'kneeplank'],[/wall push-up/i,'wallpu'],[/incline push-up/i,'inclinepu'],[/knee .*push-up/i,'kneepu'],
   [/bird dog/i,'birddog'],[/reverse lunge/i,'revlunge'],[/heel tap/i,'heeltap'],[/box squat/i,'boxsq'],[/wall sit/i,'wallsit'],[/step-back burpee/i,'stepburpee'],[/walkout/i,'walkout'],
   [/^foam roll · (quads|lats)/i,'roll'],[/^foam roll · (hamstrings|calves|glutes)/i,'rollseat'],[/^foam roll · upper back/i,'rollback'],
