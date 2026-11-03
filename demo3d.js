@@ -13,6 +13,8 @@ const L_TH=.40,L_SH=.38,L_UA=.30,L_FA=.283,ANK=.07;
 const SUP=new Set(['heeltap','crunch','bicycle','legraise','deadbug','twist','bench','fly','skull','pullover','thrust','bridge','bridge1','invrow','trxham']);
 /* moves whose arms or legs swing out to the side rather than forward */
 const LAT_ARMS=/lateral raise|flye|fly\b|jumping jack|star jump|pull-apart|reverse fly|rear delt|y raise|dislocate|wall slide|chest stretch|arm circles/i;
+/* overhead presses: elbows stay out to the sides and a little forward the whole way up */
+const OVERHEAD=new Set(['press','pushpress','thruster','wallball','lungepress']);
 const LAT_LEGS=/jumping jack|star jump|monster|lateral|skater|side shuffle/i;
 /* moves where the hard part is moving down (cables and bands pulling up from below are rare) */
 const WORK_DOWN=/pulldown|pushdown|pullover|kickback|slam|chop|straight-arm|leg curl|hamstring curl/i;
@@ -41,12 +43,12 @@ function build(){
 
   /* materials: a warm matte "clay" figure; muscles the same clay until they work */
   const FIB=fiberTex();
-  const skin=new W.MeshStandardMaterial({color:0x8a6a56,roughness:.7});
-  const dark=new W.MeshStandardMaterial({color:0x2c2638,roughness:.8});
-  const hairM=new W.MeshStandardMaterial({color:0x3a2c2a,roughness:.9});
+  const skin=new W.MeshStandardMaterial({color:0x6a1a1e,roughness:.5,map:FIB});
+  const dark=skin;
+  const hairM=skin;
   const metal=new W.MeshStandardMaterial({color:0x34343c,metalness:.55,roughness:.35});
   const kitM=new W.MeshStandardMaterial({color:0x4a4160,roughness:.75});
-  const C={idle:new W.Color(0x7c1d22),main:new W.Color(0xffa83a),also:new W.Color(0xf07f3a),emi:new W.Color(0xff8a1c)};
+  const C={idle:new W.Color(0x9e3034),main:new W.Color(0xffa83a),also:new W.Color(0xf07f3a),emi:new W.Color(0xff8a1c)};
   const mats={},mus={},halo={};
   const GLOW=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),r=g.createRadialGradient(64,64,0,64,64,64);
     r.addColorStop(0,'rgba(255,190,90,1)');r.addColorStop(.4,'rgba(255,160,50,.4)');r.addColorStop(1,'rgba(255,140,40,0)');g.fillStyle=r;g.fillRect(0,0,128,128);return new W.CanvasTexture(c)})();
@@ -202,7 +204,9 @@ function pose(e){const R=D.R,q=A.dmAt(R,e,D.P.lin||(!D.multi&&!D.hold)),s=A.dmSk
     const shin=wp(B.ft[i]).sub(wp(B.sh[i])).normalize();
     if(T.y<ANK+.06&&Math.abs(shin.y)>.55){const f=Math.abs(q.t)<60?(n||front).clone():T.clone().sub(G.root.position);setWQ(B.ft[i],lookQ(f))}
     /* arms */
-    let H=M(s.arms[i][1],.2*side),E=M(s.arms[i][0],.26*side);
+    const oh=OVERHEAD.has(D.key);
+    let H=M(s.arms[i][1],(oh?.25:.2)*side),E=M(s.arms[i][0],.26*side);
+    if(oh)E=wp(B.ua[i]).add(V(.7*side,-.3,.2));
     if(D.latA){const sp=wp(B.ua[i]);const v=H.clone().sub(sp),k=E.clone().sub(sp);
       H=sp.clone().add(V(side*Math.abs(v.z)+.02*side,v.y,.05));E=sp.clone().add(V(side*Math.abs(k.z)+.02*side,k.y,-.02))}
     if(H.y<.04)H.y=.04;
