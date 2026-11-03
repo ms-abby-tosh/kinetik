@@ -15,6 +15,8 @@ const SUP=new Set(['heeltap','crunch','bicycle','legraise','deadbug','twist','be
 const LAT_ARMS=/lateral raise|flye|fly\b|jumping jack|star jump|pull-apart|reverse fly|rear delt|y raise|dislocate|wall slide|chest stretch|arm circles/i;
 /* overhead presses: elbows stay out to the sides and a little forward the whole way up */
 const OVERHEAD=new Set(['press','pushpress','thruster','wallball','lungepress']);
+/* band push-pull: one band anchored behind (the pressing hand), one in front (the rowing hand), at chest height */
+const PP_BACK=[6,50],PP_FRONT=[134,50];
 const LAT_LEGS=/jumping jack|star jump|monster|lateral|skater|side shuffle/i;
 /* moves where the hard part is moving down (cables and bands pulling up from below are rare) */
 const WORK_DOWN=/pulldown|pushdown|pullover|kickback|slam|chop|straight-arm|leg curl|hamstring curl/i;
@@ -110,9 +112,10 @@ function build(){
   ell(B.chest,'traps',[0,.16,-.077],[.034,.082,.027]);
   const BONES=[B.spine,B.chest,B.neck,B.head,...B.ua,...B.fa,...B.hd,...B.th,...B.sh,...B.ft];
   const kit=new W.Group();scene.add(kit);
-  const strap=new W.LineSegments(new W.BufferGeometry().setAttribute('position',new W.BufferAttribute(new Float32Array(12),3)),new W.LineBasicMaterial({color:0xffb22e}));
-  strap.frustumCulled=false;scene.add(strap);
-  G={cv,renderer,scene,cam,key,root,B,BONES,mats,mus,halo,C,bodyMeshes,kit,kitM,metal,strap,SPH};
+  /* bands, cables and suspension straps: thin tubes stretched between an anchor and the hands or feet */
+  const strapM=new W.MeshStandardMaterial({color:0x3fae6a,roughness:.55}),strapG=new W.CylinderGeometry(1,1,1,10);
+  const straps=[0,1,2,3].map(()=>{const m=new W.Mesh(strapG,strapM);m.visible=false;m.castShadow=true;scene.add(m);return m});
+  G={cv,renderer,scene,cam,key,root,B,BONES,mats,mus,halo,C,bodyMeshes,kit,kitM,metal,straps,strapM,SPH};
 }
 
 /* ---------- small 3D helpers ---------- */
@@ -143,7 +146,8 @@ function plan(P,R,name){
   const s0=A.dmSkel(A.dmAt(R,0,true)),s1=A.dmSkel(A.dmAt(R,.5,true)),mid=a=>[(a[0][1][0]+a[1][1][0])/2,(a[0][1][1]+a[1][1][1])/2];
   let best=null,bd=0;
   for(const [a,b] of [[s0.hip,s1.hip],[s0.head,s1.head],[mid(s0.arms),mid(s1.arms)],[mid(s0.legs),mid(s1.legs)]]){const d=Math.hypot(b[0]-a[0],b[1]-a[1]);if(d>bd){bd=d;best=[b[0]-a[0],b[1]-a[1]]}}
-  if(bd<3)return{hold:true};
+  if(bd<3){/* hands moving in opposite directions (push-pull, alternating presses) is not a hold */
+    const hm=[0,1].map(i=>Math.hypot(s1.arms[i][1][0]-s0.arms[i][1][0],s1.arms[i][1][1]-s0.arms[i][1][1]));return Math.max(...hm)>=3?{multi:true}:{hold:true}}
   let n1,n2,w1;
   if(Math.abs(best[1])>=Math.abs(best[0])*.6){n1=best[1]<0?'UP':'DOWN';n2=best[1]<0?'DOWN':'UP';w1=best[1]<0}else{n1='OUT';n2='BACK';w1=true}
   if(WORK_DOWN.test(name))w1=!w1;
@@ -177,6 +181,7 @@ function buildKit(P){
     else if(b==='rail'){slab([20,112],[144,112],.7,.05);post([144,90],.3);post([144,90],-.3);latBar([144,90],.6,.02)}
     else if(b==='belt'){slab([20,A.DG+1],[140,A.DG+1],.7,.05);slab([138,A.DG],[128,40],.08,.08)}
     else if(b==='steps'){slab([62,106],[92,106],.8,16*S);slab([118,A.DG],[118,30],.06,.06)}});
+  if(D.key==='pushpull'){post(PP_BACK,.2);post(PP_FRONT,-.2)}
   if(P.roller){const m=new W.Mesh(new W.CylinderGeometry(.075,.075,.5,24),G.kitM);m.rotation.z=PI/2;m.position.copy(M(P.roller));m.castShadow=true;G.kit.add(m)}
 }
 function heldMesh(h){if(!h)return null;const g=new W.Group(),m=G.metal;
@@ -222,13 +227,17 @@ function pose(e){const R=D.R,q=A.dmAt(R,e,D.P.lin||(!D.multi&&!D.hold)),s=A.dmSk
     else if(t==='kb'||t==='db')at=hp==='hip'?[s.hip[0]+2,s.hip[1]-6]:ahead(0,5);
     else at=ahead(0,5);
     D.hm.position.copy(M(at));if(t==='kb'&&D.hm.position.y<.09)D.hm.position.y=.09;if(t==='ball'&&D.hm.position.y<.12)D.hm.position.y=.12}
-  const arr=G.strap.geometry.attributes.position.array;let nseg=0;
-  const seg=(a,b)=>{if(nseg>1)return;arr.set([a.x,a.y,a.z,b.x,b.y,b.z],nseg*6);nseg++};
+  let nseg=0;
+  const seg=(a,b)=>{if(nseg>3)return;const m=G.straps[nseg++],dv=b.clone().sub(a),L=dv.length();if(L<1e-4){m.visible=false;return}
+    m.visible=true;m.position.copy(a).add(b).multiplyScalar(.5);m.scale.set(D.sw,L,D.sw);m.quaternion.setFromUnitVectors(V(0,1,0),dv.divideScalar(L))};
+  const hw=i=>wp(G.B.hd[i]).add(V(0,-.045,0).applyQuaternion(G.B.hd[i].getWorldQuaternion(new W.Quaternion()))),both=a=>{seg(a,hw(0));seg(a,hw(1))};
   const P=D.P,nm=D.name;
-  if(P.ta){if(P.ta==='feet'){const f=wp(G.B.ft[0]);seg(M([10,-12]),f)}else seg(M(P.ta),M(mid))}
-  if(P.ba&&!/pull-apart/i.test(nm)&&/band|cable|pulldown|pushdown|face pull|crunch/i.test(nm))seg(M(P.ba),M(mid));
-  else if(/^band (curls|overhead|lateral)|banded squats|band good/i.test(nm))seg(wp(G.B.ft[0]),M(mid));
-  G.strap.visible=nseg>0;G.strap.geometry.setDrawRange(0,nseg*2);G.strap.geometry.attributes.position.needsUpdate=true}
+  if(D.key==='pushpull'){seg(M(PP_BACK,.2),hw(0));seg(M(PP_FRONT,-.2),hw(1))}
+  else if(P.ta){if(P.ta==='feet'){const a=M([10,-12]);seg(a,wp(G.B.ft[0]));seg(a,wp(G.B.ft[1]))}else both(M(P.ta))}
+  if(P.ba&&!/pull-apart/i.test(nm)&&/band|cable|pulldown|pushdown|face pull|crunch/i.test(nm))both(M(P.ba));
+  else if(/^band (curls|overhead|lateral)|banded squats|band good/i.test(nm)){seg(wp(G.B.ft[0]),hw(0));seg(wp(G.B.ft[1]),hw(1))}
+  else if(/pull-apart/i.test(nm))seg(hw(0),hw(1));
+  for(let k=nseg;k<4;k++)G.straps[k].visible=false}
 
 function frameCam(){const box=new W.Box3();
   for(let k=0;k<8;k++){pose(D.multi||D.hold?k/8:k/14);G.root.updateMatrixWorld(true);for(const m of G.bodyMeshes)box.expandByObject(m)}
@@ -284,6 +293,9 @@ function open(el,name,P,api){close();A=api;if(!G)build();
     yaw0:65*PI/180,yaw:65*PI/180,pitch:12*PI/180,lastDrag:-1e9,drag:null,ov:el.querySelector('.d3ov'),phEl:el.querySelector('.d3co b'),brEl:el.querySelector('.d3co span'),pbEl:el.querySelector('.d3co u'),
     latA:LAT_ARMS.test(name),latL:LAT_LEGS.test(name)};
   G.cv.setAttribute('role','img');G.cv.setAttribute('aria-label','3D demonstration of '+name+(m.p.length?', working '+m.p.map(k=>A.MUS_NAME[k]).join(' and '):''));
+  /* strap look: suspension straps, cables or rubber bands */
+  const trx=/trx/i.test(name),cab=/cable|pulldown|pushdown|face pull|rope/i.test(name);
+  D.sw=trx?.011:cab?.0045:.008;G.strapM.color.setHex(trx?0xd8b11c:cab?0x9a9aa6:0x3fae6a);
   buildKit(P);D.held=A.dmHeld(name,P);D.hm=null;
   const db=D.held&&D.held.t==='db'&&P.hold!=='hip';G.B.db.forEach((d,i)=>{d.visible=!!db&&!(i===1&&(D.held.one||P.hold==='mid'))});
   if(D.held&&!db)D.hm=heldMesh(D.held);
