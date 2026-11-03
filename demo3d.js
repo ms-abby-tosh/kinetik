@@ -10,7 +10,7 @@ if(W.ColorManagement)W.ColorManagement.legacyMode=false;
 const PI=Math.PI,S=.0177,V=(x,y,z)=>new W.Vector3(x,y,z);
 const L_TH=.40,L_SH=.38,L_UA=.30,L_FA=.283,ANK=.07;
 /* moves drawn lying face up with the body pointing forward: mirror them so the chest faces the sky */
-const SUP=new Set(['heeltap','crunch','bicycle','legraise','deadbug','twist','bench','fly','skull','pullover','thrust','bridge','bridge1','invrow','trxham']);
+const SUP=new Set(['heeltap','crunch','bicycle','legraise','deadbug','twist','bench','fly','skull','pullover','thrust','bridge','bridge1','invrow','trxham','hundred','legcircle','slstretch','dlstretch','toetap','scissor']);
 /* moves whose arms or legs swing out to the side rather than forward */
 const LAT_ARMS=/lateral raise|flye|fly\b|jumping jack|star jump|pull-apart|reverse fly|rear delt|y raise|dislocate|wall slide|chest stretch|arm circles/i;
 /* overhead presses: elbows stay out to the sides and a little forward the whole way up */
@@ -142,12 +142,13 @@ function M(p,x){return V(x||0,(A.DG-p[1])*S,D.mir*(p[0]-D.cx)*S)}
 
 function plan(P,R,name){
   if(/^(stretch|foam roll) ·|cat-cow|child's pose|downward dog|cobra/i.test(name))return{multi:true,calm:true};
+  if(P.flow)return{multi:true,calm:true};
   if(R.length!==2||P.lin)return{multi:true};
   const s0=A.dmSkel(A.dmAt(R,0,true)),s1=A.dmSkel(A.dmAt(R,.5,true)),mid=a=>[(a[0][1][0]+a[1][1][0])/2,(a[0][1][1]+a[1][1][1])/2];
   let best=null,bd=0;
   for(const [a,b] of [[s0.hip,s1.hip],[s0.head,s1.head],[mid(s0.arms),mid(s1.arms)],[mid(s0.legs),mid(s1.legs)]]){const d=Math.hypot(b[0]-a[0],b[1]-a[1]);if(d>bd){bd=d;best=[b[0]-a[0],b[1]-a[1]]}}
-  if(bd<3){/* hands moving in opposite directions (push-pull, alternating presses) is not a hold */
-    const hm=[0,1].map(i=>Math.hypot(s1.arms[i][1][0]-s0.arms[i][1][0],s1.arms[i][1][1]-s0.arms[i][1][1]));return Math.max(...hm)>=3?{multi:true}:{hold:true}}
+  if(bd<3){/* hands or feet moving in opposite directions (push-pull, bicycles) is not a hold */
+    const hm=[0,1].flatMap(i=>[Math.hypot(s1.arms[i][1][0]-s0.arms[i][1][0],s1.arms[i][1][1]-s0.arms[i][1][1]),Math.hypot(s1.legs[i][1][0]-s0.legs[i][1][0],s1.legs[i][1][1]-s0.legs[i][1][1])]);return Math.max(...hm)>=3?{multi:true}:{hold:true}}
   let n1,n2,w1;
   if(Math.abs(best[1])>=Math.abs(best[0])*.6){n1=best[1]<0?'UP':'DOWN';n2=best[1]<0?'DOWN':'UP';w1=best[1]<0}else{n1='OUT';n2='BACK';w1=true}
   if(WORK_DOWN.test(name))w1=!w1;
