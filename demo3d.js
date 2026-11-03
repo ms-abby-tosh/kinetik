@@ -12,7 +12,7 @@ const L_TH=.40,L_SH=.38,L_UA=.30,L_FA=.283,ANK=.07;
 /* moves drawn lying face up with the body pointing forward: mirror them so the chest faces the sky */
 const SUP=new Set(['heeltap','crunch','bicycle','legraise','deadbug','twist','bench','fly','skull','pullover','thrust','bridge','bridge1','invrow','trxham','hundred','legcircle','slstretch','dlstretch','toetap','scissor']);
 /* moves whose arms or legs swing out to the side rather than forward */
-const LAT_ARMS=/lateral raise|flye|fly\b|jumping jack|star jump|pull-apart|reverse fly|rear delt|y raise|dislocate|wall slide|chest stretch|arm circles/i;
+const LAT_ARMS=/^(joint circles|mobility|breathe)$|lateral raise|flye|fly\b|jumping jack|star jump|pull-apart|reverse fly|rear delt|y raise|dislocate|wall slide|chest stretch|arm circles/i;
 /* overhead presses: elbows stay out to the sides and a little forward the whole way up */
 const OVERHEAD=new Set(['press','pushpress','thruster','wallball','lungepress']);
 /* band push-pull: one band anchored behind (the pressing hand), one in front (the rowing hand), at chest height */

@@ -1163,6 +1163,8 @@ function paintBody(box,m){const p=new Set(m?m.p:[]),s=new Set(m?m.s:[]);box.quer
   const svg=box.querySelector('svg');if(svg)svg.setAttribute('aria-label',m&&m.p.length?'Muscles worked: '+[...p].map(k=>MUS_NAME[k]).join(', '):'Muscle map');return !!(m&&m.p.length)}
 /* which muscles a move works: first matching rule wins; [pattern, primary, secondary] */
 const MUS_RULES=[
+  [/^(joint circles|mobility)$/i,['delts'],['traps','glutes']],[/^dynamic warm-up · skips/i,['calves','quads'],['glutes','hamstrings']],[/^(dynamic warm-up|prime)$/i,['quads','glutes'],['hamstrings','calves']],
+  [/^breathe$/i,['abs']],[/^activate$/i,['glutes'],['hamstrings']],[/^walk it down$/i,['quads','calves'],['glutes']],[/^stretch$/i,['hamstrings','quads'],['glutes']],
   [/^(the hundred|roll-ups|rolling like a ball|single-leg stretch|double-leg stretch|toe taps|scissors|teaser)$/i,['abs'],['obliques']],[/^criss-cross$/i,['obliques'],['abs']],
   [/^single-leg circles$/i,['abs','quads'],['adductors']],[/^spine stretch forward$/i,['hamstrings','lowerback'],['abs']],[/^saw$/i,['obliques'],['hamstrings','lowerback']],
   [/^swan$/i,['lowerback'],['glutes','upperback']],[/^swimming$/i,['lowerback','glutes'],['delts','hamstrings']],[/^shoulder bridge$/i,['glutes'],['hamstrings']],[/^leg pull front$/i,['abs','glutes'],['delts']],
@@ -1228,6 +1230,10 @@ const FOURS={p:[60,89],t:78.7,F:[[36,113],[34,113]],H:[[92,114],[90,114]],k:1};
 const RUN=(f,hi,arm)=>[{p:[70,64],t:8,F:[[84,f],[58,112]],Hr:[[-12,24],[arm,14]]},{F:[[58,112],[84,f]],Hr:[[arm,14],[-12,24]]}];
 const HOP0={p:[66,74],t:22,F:[[76,114],[62,114]],Hr:[[14,18],[10,20]]};
 const DMO={
+  /* warm-up and cool-down */
+  jointcirc:{d:4,flow:1,k:[{...DST},{p:[72,66],Hr:[[24,-8],[22,-8]]},{p:[70,65],Hr:[[2,-33],[0,-33]],e:1},{p:[68,66],Hr:[[-22,-8],[-24,-8]],e:-1}],tips:['Stand tall; gently circle your neck, then your shoulders','Make big, slow arm circles, forwards then backwards','Circle your hips, knees and ankles; small and easy']},
+  dynwarm:{d:5,flow:1,k:[{...DST},{F:[[107,97],[67,114]],Hr:[[-12,24],[14,20]]},{...DST},{...DST,p:[68,93],F:[[86,114],[50,114]],Hr:[[2,-33],[0,-33]],e:1}],tips:['Swing each leg forward and back; hold something if you need to','Step into lunges with your arms reaching up','Finish with quick feet or high knees to raise your heart rate']},
+  breathe:{d:6,flow:1,k:[{...DST},{Hr:[[4,-33],[2,-33]],e:1,hd:-6}],tips:['Stand tall and relax your shoulders','Breathe in through your nose as your arms float up','Breathe out slowly through your mouth as they come down']},
   /* Pilates */
   hundred:{d:.8,flow:1,k:[{...LIE,t:66,c:3,hd:10,F:[[26,73],[24,73]],k:1,H:[[56,98],[54,98]]},{H:[[56,104],[54,104]]}],tips:['Lie on your back, legs up at an angle (bend your knees to make it easier)','Curl your head and shoulders up, arms long by your sides','Pump your arms: breathe in for 5 pumps, out for 5, up to 100']},
   rollup:{d:6,flow:1,k:[{p:[50,108],t:-90,F:[[98,110],[96,110]],k:1,H:[[-10,104],[-12,104]],e:-1,c:0,hd:0},{t:-20,c:6,hd:20,H:[[72,82],[70,82]]},{t:50,c:8,H:[[98,104],[96,104]]},{t:-20,c:6,H:[[72,82],[70,82]]}],tips:['Lie flat, legs long, arms overhead','Reach your arms up and roll up one bone at a time to reach past your toes','Roll back down slowly with control; no jerking']},
@@ -1399,6 +1405,8 @@ const DMO={
 };
 /* which demo a move uses: first match wins */
 const DMO_RULES=[
+  [/^(joint circles|mobility)$/i,'jointcirc'],[/^dynamic warm-up · skips/i,'skip'],[/^(dynamic warm-up|prime)$/i,'dynwarm'],[/^breathe$/i,'breathe'],
+  [/^activate$/i,'bridge'],[/^walk it down$/i,'walk'],[/^stretch$/i,'hamstr'],
   [/^the hundred$/i,'hundred'],[/^roll-ups$/i,'rollup'],[/^single-leg circles$/i,'legcircle'],[/^rolling like a ball$/i,'rollball'],[/^single-leg stretch$/i,'slstretch'],
   [/^double-leg stretch$/i,'dlstretch'],[/^criss-cross$/i,'bicycle'],[/^spine stretch forward$/i,'spinefwd'],[/^saw$/i,'saw'],[/^swan$/i,'cobra'],[/^swimming$/i,'swim'],
   [/^shoulder bridge$/i,'bridge'],[/^toe taps$/i,'toetap'],[/^scissors$/i,'scissor'],[/^teaser$/i,'teaser'],[/^leg pull front$/i,'legpull'],
@@ -1553,10 +1561,10 @@ function renderToday(){const {dow,key,cfg,ov,F}=todayInfo(),items=curSetup().ite
   const n=shuf.date===key?shuf.n:0;todayW=genWorkout(cfg,[key,cfg.f,cfg.types.join('+'),cfg.cs||'',cfg.m||'',cfg.dur,cfg.lvl,[...items].sort().join(','),n].join('|'));
   $('tdDet').textContent=F.det+' · '+curSetup().name+' · '+Math.round(wTotal(todayW)/60)+' min';$('tdGo').textContent="Load today's workout";
   const tm=musclesOf(todayW.blocks);$('tdBody').hidden=!paintBody($('tdBody'),tm);
-  /* one row per exercise under a heading per type; cardio collapses to one row */
+  /* one row per exercise under a heading per type (plus warm-up and cool-down); cardio collapses to one row */
   const tl=$('tdList');tl.innerHTML='';let ty=null,row=null;
-  todayW.blocks.forEach(b=>{if(!b.ty||b.t==='rest')return;
-    if(b.ty!==ty){ty=b.ty;row=null;const h=document.createElement('li');h.className='td-sec';h.textContent=TYPES[ty].name;tl.appendChild(h)}
+  todayW.blocks.forEach(b=>{const sec=b.t==='warm'?'Warm-up':b.t==='cool'?'Cool-down':b.ty&&b.t!=='rest'?TYPES[b.ty].name:null;if(!sec)return;
+    if(sec!==ty){ty=sec;row=null;const h=document.createElement('li');h.className='td-sec';h.textContent=sec;tl.appendChild(h)}
     if(b.grp&&row&&row.grp===b.grp){row.d+=b.d;row.em.textContent=fmt(row.d);return}
     const li=document.createElement('li'),nm=b.grp||b.name;li.innerHTML='<button type="button" class="td-ex"><span></span><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M6.5 5.5v5l4-2.5z"/></svg></button><em></em>';
     li.querySelector('span').textContent=nm;const bt=li.querySelector('button');bt.setAttribute('aria-label','How to do '+nm);bt.onclick=()=>openDemo(b.name);const em=li.querySelector('em');

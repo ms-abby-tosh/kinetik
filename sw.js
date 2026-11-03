@@ -1,6 +1,6 @@
 // Kinetik service worker: lets the app open offline and load fast.
 // Bump VERSION whenever you publish changes so phones pick up the new files.
-const VERSION = 'kinetik-v15';
+const VERSION = 'kinetik-v16';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'demo3d.js', 'vendor/three.min.js'];
 
 self.addEventListener('install', e => {
